@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { cart } from '$lib/stores/cart';
-  import { get } from 'svelte/store';
-  import type { SubItem, Product, GenderCategory, MainCategory } from '$lib/types';
-  import { writable } from 'svelte/store';
+     import { onMount } from 'svelte';
+    import { cart } from '$lib/stores/cart';
+    import { get } from 'svelte/store';
+    import type { SubItem, Product, GenderCategory, MainCategory } from '$lib/types';
 
-  let categories: MainCategory[] = [
+    let categories: MainCategory[] = [
     {
       id: 800,
       name: "Clothing",
@@ -1138,22 +1136,10 @@
     totalSoldProducts: 0
   };
 
-  let consumerData = {
-    totalConsumers: 0,
-    activeConsumers: 0,
-    newThisMonth: 0
-  };
-
   let transactionData = {
     totalAmount: 0,
     completedAmount: 0,
     pendingAmount: 0
-  };
-
-  let invoiceData = {
-    paid: 0,
-    pending: 0,
-    overdue: 0
   };
 
   let feedbackData = {
@@ -1228,9 +1214,7 @@
     | "dashboard"
     | "report"
     | "products"
-    | "consumer"
     | "transactions"
-    | "invoices"
     | "settings"
     | "feedback"
     | "help" = "dashboard";
@@ -1301,34 +1285,42 @@
   }
 
   // ========== AUTH FUNCTIONS ==========
-  function register() {
-    if (!isLoggedIn) {
-      showModal = true;
-    }
-  }
-
-  function handleSubmit(e: Event) {
+function handleSubmit(e: Event) {
     e.preventDefault();
     
     const loginUsername = document.getElementById('login-username') as HTMLInputElement;
     const loginPassword = document.getElementById('login-password') as HTMLInputElement;
     
     if (loginUsername && loginPassword) {
-      if (loginUsername.value.trim() && loginPassword.value.trim()) {
-        currentUser = loginUsername.value;
-        isLoggedIn = true;
-        showModal = false;
-        
-        localStorage.setItem('currentUser', currentUser);
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        const authForm = document.getElementById('auth-form') as HTMLFormElement;
-        if (authForm) {
-          authForm.reset();
+        if (loginUsername.value.trim() && loginPassword.value.trim()) {
+            currentUser = loginUsername.value;
+            isLoggedIn = true;
+            showModal = false;
+            
+            // AUTO-REDIRECT TO PRODUCTS SECTION AFTER LOGIN
+            activeSection = "products";
+            showSubmenu = true;
+            
+            // Initialize categories for products section
+            if (typeof categories !== 'undefined' && categories.length > 0) {
+                selectedMainCategory = categories[0]; 
+                if (categories[0].genders.length > 0) {
+                    selectedGender = categories[0].genders[0]; 
+                    selectedGenderIndex = 0;
+                    activeSubmenu = "Clothing";
+                }
+            }
+            
+            localStorage.setItem('currentUser', currentUser);
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            const authForm = document.getElementById('auth-form') as HTMLFormElement;
+            if (authForm) {
+                authForm.reset();
+            }
         }
-      }
     }
-  }
+}
 
   function handleUsernameInput(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -1429,16 +1421,22 @@
   }
 
   // ========== NAVIGATION FUNCTIONS ==========
-  function setSection(section: typeof activeSection) {
-    if (section === "products" && activeSection === "products") {
-      showSubmenu = false;
-      hoveredNav = "";
-    } else {
-      activeSection = section;
-      showSubmenu = section === "products";
-      if (section !== "products") activeSubmenu = null;
+function setSection(section: typeof activeSection) {
+    // Check if user is logged in before allowing access to products
+    if (section === "products" && !isLoggedIn) {
+        showModal = true; // Show login modal if not logged in
+        return; // Don't change section
     }
-  }
+    
+    if (section === "products" && activeSection === "products") {
+        showSubmenu = false;
+        hoveredNav = "";
+    } else {
+        activeSection = section;
+        showSubmenu = section === "products";
+        if (section !== "products") activeSubmenu = null;
+    }
+}
 
   function selectMainCategory(category: MainCategory) {
     selectedMainCategory = category;
@@ -1562,17 +1560,9 @@
     reportData.visitor = Math.max(50, Math.floor(itemsCount * 8));
     reportData.totalSoldProducts = itemsCount;
 
-    consumerData.totalConsumers = Math.max(10, Math.floor(itemsCount * 3));
-    consumerData.activeConsumers = Math.floor(consumerData.totalConsumers * 0.8);
-    consumerData.newThisMonth = Math.max(1, Math.floor(itemsCount * 1.5));
-
     transactionData.totalAmount = totalAmount;
     transactionData.completedAmount = Math.floor(totalAmount * 0.78);
     transactionData.pendingAmount = Math.floor(totalAmount * 0.22);
-
-    invoiceData.paid = Math.max(1, Math.floor(itemsCount * 2.4));
-    invoiceData.pending = Math.max(1, Math.floor(itemsCount * 0.9));
-    invoiceData.overdue = Math.max(1, Math.floor(itemsCount * 0.12));
 
     feedbackData.totalReviews = Math.max(5, Math.floor(itemsCount * 12));
     feedbackData.positiveReviews = Math.floor(feedbackData.totalReviews * 0.83);
@@ -1788,39 +1778,46 @@
   }
 
   // ========== LIFECYCLE ==========
-  onMount(() => {
+onMount(() => {
     const savedLoginState = localStorage.getItem('isLoggedIn');
     const savedUser = localStorage.getItem('currentUser');
     
     if (savedLoginState === 'true' && savedUser) {
-      isLoggedIn = true;
-      currentUser = savedUser;
-      showModal = false;
+        isLoggedIn = true;
+        currentUser = savedUser;
+        showModal = false;
+        
+        // AUTO-REDIRECT TO PRODUCTS SECTION IF ALREADY LOGGED IN
+        activeSection = "products";
+        showSubmenu = true;
+        
+        // Initialize categories
+        if (typeof categories !== 'undefined' && categories.length > 0) {
+            selectedMainCategory = categories[0]; 
+            if (categories[0].genders.length > 0) {
+                selectedGender = categories[0].genders[0]; 
+                selectedGenderIndex = 0;
+                activeSubmenu = "Clothing";
+            }
+        }
     } else {
-      isLoggedIn = false;
-      showModal = true; 
-    }
-
-    if (typeof categories !== 'undefined' && categories.length > 0) {
-      selectedMainCategory = categories[0]; 
-      if (categories[0].genders.length > 0) {
-        selectedGender = categories[0].genders[0]; 
-        selectedGenderIndex = 0;
-        activeSubmenu = "Clothing";
-      }
+        isLoggedIn = false;
+        currentUser = '';
+        showModal = false;
+        activeSection = "dashboard"; // Stay on dashboard if not logged in
     }
     
     try {
-      const storeCart = get(cart);
-      if (Array.isArray(storeCart)) {
-        cartItems = storeCart;
-      }
+        const storeCart = get(cart);
+        if (Array.isArray(storeCart)) {
+            cartItems = storeCart;
+        }
     } catch (error) {
-      console.warn('Cart store not available on mount');
+        console.warn('Cart store not available on mount');
     }
     
     document.title = "Aegix";
-  });
+});
 </script>
 
 <div class="main-background">
@@ -1839,62 +1836,46 @@
             </button>
 
             <div class="section-title">MENU</div>
-            <div class="nav-item {activeSection === 'dashboard' ? 'active' : ''}" on:click={() => setSection('dashboard')}>
+            <button type="button" class="nav-item {activeSection === 'dashboard' ? 'active' : ''}" on:click={() => setSection('dashboard')}>
                 <i class="bx bx-home-alt"></i><span>Dashboard</span>
-            </div>
+            </button>
 
-            <div class="nav-item {activeSection === 'report' ? 'active' : ''}" on:click={() => setSection('report')}>
+            <button type="button" class="nav-item {activeSection === 'report' ? 'active' : ''}" on:click={() => setSection('report')}>
                 <i class="bx bx-book-alt"></i><span>Report</span>
-            </div>
-
-            <div class="nav-item {activeSection === 'products' ? 'active' : ''}" on:click={() => setSection('products')}>
-                <i class="bx bx-box"></i><span>Products</span>
-            </div>
-
-            <div class="nav-item {activeSection === 'consumer' ? 'active' : ''}" on:click={() => setSection('consumer')}>
-                <i class="bx bx-user"></i><span>Consumer</span>
-            </div>
+            </button>
 
             <div class="section-title">FINANCIAL</div>
-            <div class="nav-item {activeSection === 'transactions' ? 'active' : ''}" on:click={() => setSection('transactions')}>
+            <button type="button" class="nav-item {activeSection === 'transactions' ? 'active' : ''}" on:click={() => setSection('transactions')}>
                 <i class="bx bx-receipt"></i><span>Transactions</span>
-            </div>
-
-            <div class="nav-item {activeSection === 'invoices' ? 'active' : ''}" on:click={() => setSection('invoices')}>
-                <i class="bx bx-file"></i><span>Invoices</span>
-            </div>
+            </button>
 
             <div class="section-title">TOOLS</div>
-            <div class="nav-item {activeSection === 'settings' ? 'active' : ''}" on:click={() => setSection('settings')}>
+            <button type="button" class="nav-item {activeSection === 'settings' ? 'active' : ''}" on:click={() => setSection('settings')}>
                 <i class="bx bx-cog"></i><span>Settings</span>
-            </div>
+            </button>
 
-            <div class="nav-item {activeSection === 'feedback' ? 'active' : ''}" on:click={() => setSection('feedback')}>
+            <button type="button" class="nav-item {activeSection === 'feedback' ? 'active' : ''}" on:click={() => setSection('feedback')}>
                 <i class="bx bx-edit"></i><span>Feedback</span>
-            </div>
+            </button>
 
-            <div class="nav-item {activeSection === 'help' ? 'active' : ''}" on:click={() => setSection('help')}>
+            <button type="button" class="nav-item {activeSection === 'help' ? 'active' : ''}" on:click={() => setSection('help')}>
                 <i class="bx bx-help-circle"></i><span>Help</span>
-            </div>
+            </button>
 
             <div class="register-section">
                 {#if isLoggedIn}
                     <div class="user-welcome">
-                    <span>Hi! {currentUser} Welcome</span>
-                    <button class="logout-btn" on:click={logout}>Logout</button>
+                        <span>Hi! {currentUser} Welcome</span>
+                        <button class="logout-btn" on:click={logout}>Logout</button>
                     </div>
-                {:else}
-                    <button class="register-btn" on:click={register}>
-                    <span>Register</span>
-                    </button>
                 {/if}
             </div>
 
             {#if showModal}
-                <div class="modal-overlay" id="modal-overlay" on:click={handleOverlayClick}>
-                    <div class="modal-content">
+                <div class="modal-overlay" id="modal-overlay" role="button" tabindex="0" aria-label="Close login modal" on:click={handleOverlayClick} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showModal = false } }}>
+                    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" tabindex="-1">
                         <div class="modal-header">
-                            <h2>Log In</h2>
+                            <h2 id="login-modal-title">Log In</h2>
                             <button class="close-btn" on:click={() => showModal = false}>×</button>
                         </div>
                         
@@ -1939,132 +1920,130 @@
             {activeSection === 'dashboard' ? 'main-content1' : ''} 
             {activeSection === 'report' ? 'main-content2' : ''}
             {activeSection === 'products' ? 'main-content3' : ''}
-            {['consumer','transactions','invoices','settings','feedback'].includes(activeSection) ? 'main-content4' : ''}
+            {['transactions','settings','feedback'].includes(activeSection) ? 'main-content4' : ''}
             {activeSection === 'help' ? 'main-content5' : ''}">
 
             {#if activeSection === "dashboard"}
                 <div class="dashboard-container">
                     <!-- Sales Overview -->
                     <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">💰</div>
-                        <div class="stat-info">
-                        <h3>Today's Sales</h3>
-                        <p class="stat-value">₱{dashboardData.todaySales.toLocaleString()}</p>
-                        <span class="stat-change {dashboardData.todaySales > 0 ? 'positive' : ''}">
-                            {dashboardData.todaySales > 0 ? '+12%' : 'No sales yet'}
-                        </span>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-info">
+                                <h3>Today's Sales</h3>
+                                <p class="stat-value">₱{dashboardData.todaySales.toLocaleString()}</p>
+                                <span class="stat-change {dashboardData.todaySales > 0 ? 'positive' : ''}">
+                                    {dashboardData.todaySales > 0 ? '+12%' : 'No sales yet'}
+                                </span>
+                            </div>
                         </div>
-                    </div>
                     
-                    <div class="stat-card">
-                        <div class="stat-icon">📦</div>
-                        <div class="stat-info">
-                        <h3>Pending Orders</h3>
-                        <p class="stat-value">{dashboardData.pendingOrders}</p>
-                        <span class="stat-change {dashboardData.pendingOrders > 0 ? '' : 'positive'}">
-                            {dashboardData.pendingOrders > 0 ? 'Need Attention' : 'All clear'}
-                        </span>
+                        <div class="stat-card">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <h3>Pending Orders</h3>
+                                <p class="stat-value">{dashboardData.pendingOrders}</p>
+                                <span class="stat-change {dashboardData.pendingOrders > 0 ? '' : 'positive'}">
+                                    {dashboardData.pendingOrders > 0 ? 'Need Attention' : 'All clear'}
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <h3>New Customers</h3>
+                                <p class="stat-value">{dashboardData.newCustomers}</p>
+                                <span class="stat-change {dashboardData.newCustomers > 0 ? 'positive' : ''}">
+                                    {dashboardData.newCustomers > 0 ? '+5%' : 'No new customers'}
+                                </span>
+                            </div>
+                        </div>
                     
-                    <div class="stat-card">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-info">
-                        <h3>New Customers</h3>
-                        <p class="stat-value">{dashboardData.newCustomers}</p>
-                        <span class="stat-change {dashboardData.newCustomers > 0 ? 'positive' : ''}">
-                            {dashboardData.newCustomers > 0 ? '+5%' : 'No new customers'}
-                        </span>
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <h3>Conversion Rate</h3>
+                                <p class="stat-value">{dashboardData.conversionRate.toFixed(1)}%</p>
+                                <span class="stat-change {dashboardData.conversionRate > 0 ? 'positive' : ''}">
+                                    {dashboardData.conversionRate > 0 ? '+0.4%' : 'No activity'}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-info">
-                        <h3>Conversion Rate</h3>
-                        <p class="stat-value">{dashboardData.conversionRate.toFixed(1)}%</p>
-                        <span class="stat-change {dashboardData.conversionRate > 0 ? 'positive' : ''}">
-                            {dashboardData.conversionRate > 0 ? '+0.4%' : 'No activity'}
-                        </span>
-                        </div>
-                    </div>
                     </div>
 
                     <!-- Charts Section -->
                     <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>Sales Trend (Last 7 Days)</h3>
-                        <div class="chart-placeholder">
-                        {#if dashboardData.todaySales > 0}
-                            📈 Sales: ₱{dashboardData.todaySales.toLocaleString()}
-                        {:else}
-                            📈 No data available
-                        {/if}
+                        <div class="chart-card">
+                            <h3>Sales Trend (Last 7 Days)</h3>
+                            <div class="chart-placeholder">
+                                {#if dashboardData.todaySales > 0}
+                                    📈 Sales: ₱{dashboardData.todaySales.toLocaleString()}
+                                {:else}
+                                    📈 No data available
+                                {/if}
+                            </div>
                         </div>
-                    </div>
                     
-                    <div class="chart-card">
-                        <h3>Top Categories</h3>
-                        <div class="chart-placeholder">
-                        {#if dashboardData.todaySales > 0}
-                            🍩 Active Categories
-                        {:else}
-                            🍩 No data available
-                        {/if}
+                        <div class="chart-card">
+                            <h3>Top Categories</h3>
+                            <div class="chart-placeholder">
+                                {#if dashboardData.todaySales > 0}
+                                    🍩 Active Categories
+                                {:else}
+                                    🍩 No data available
+                                {/if}
+                            </div>
                         </div>
-                    </div>
                     </div>
 
                     <!-- Recent Activity -->
                     <div class="activity-card">
-                    <h3>Recent Activity</h3>
-                    <div class="activity-list">
-                        {#if dashboardData.todaySales > 0}
-                        <div class="activity-item">
-                            <span class="activity-icon">🛒</span>
-                            <div class="activity-details">
-                            <p>New sale completed - ₱{dashboardData.todaySales.toLocaleString()}</p>
-                            <small>Just now</small>
-                            </div>
-                            <span class="activity-amount">₱{dashboardData.todaySales.toLocaleString()}</span>
+                        <h3>Recent Activity</h3>
+                        <div class="activity-list">
+                            {#if dashboardData.todaySales > 0}
+                                <div class="activity-item">
+                                    <span class="activity-icon">🛒</span>
+                                    <div class="activity-details">
+                                        <p>New sale completed - ₱{dashboardData.todaySales.toLocaleString()}</p>
+                                        <small>Just now</small>
+                                    </div>
+                                    <span class="activity-amount">₱{dashboardData.todaySales.toLocaleString()}</span>
+                                </div>
+
+                                <div class="activity-item">
+                                    <span class="activity-icon">👤</span>
+                                    <div class="activity-details">
+                                        <p>{dashboardData.newCustomers} new customer(s) registered</p>
+                                        <small>Today</small>
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="activity-item">
+                                    <span class="activity-icon">ℹ️</span>
+                                    <div class="activity-details">
+                                        <p>No recent activity</p>
+                                        <small>Start making sales to see activity</small>
+                                    </div>
+                                </div>
+                            {/if}
                         </div>
-                        <div class="activity-item">
-                            <span class="activity-icon">👤</span>
-                            <div class="activity-details">
-                            <p>{dashboardData.newCustomers} new customer(s) registered</p>
-                            <small>Today</small>
-                            </div>
-                        </div>
-                        {:else}
-                        <div class="activity-item">
-                            <span class="activity-icon">ℹ️</span>
-                            <div class="activity-details">
-                            <p>No recent activity</p>
-                            <small>Start making sales to see activity</small>
-                            </div>
-                        </div>
-                        {/if}
-                    </div>
                     </div>
 
                     <!-- Quick Actions -->
                     <div class="quick-actions">
-                    <h3>Quick Actions</h3>
-                    <div class="action-buttons">
-                        <button class="action-btn" on:click={() => setSection('products')}>
-                        <span>➕</span>
-                        Add Product
-                        </button>
-                        <button class="action-btn" on:click={() => setSection('invoices')}>
-                        <span>🧾</span>
-                        Create Invoice
-                        </button>
-                        <button class="action-btn" on:click={() => setSection('report')}>
-                        <span>📊</span>
-                        View Reports
-                        </button>
-                    </div>
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="action-btn" on:click={() => setSection('products')}>
+                                <span>➕</span>
+                                Add Product
+                            </button>
+
+                            <button class="action-btn" on:click={() => setSection('report')}>
+                                <span>📊</span>
+                                View Reports
+                            </button>
+                        </div>
                     </div>
                 </div>
             {/if}
@@ -2072,107 +2051,110 @@
             {#if activeSection === "report"}
                 <section class="analytics-dashboard">
                     <div class="dashboard-grid">
-                    <div class="card card1 blue">
-                        <div class="card-header1">
-                        <h2>Total Sales</h2>
-                        <span class="{reportData.totalSales > 0 ? 'positive1' : 'muted5'}">
-                            {reportData.totalSales > 0 ? '+2.08%' : 'No data'}
-                        </span>
-                        </div>
-                        <p class="value1">₱{reportData.totalSales.toLocaleString()}</p>
-                        <p class="desc1">Products vs last month</p>
-                    </div>
+                        <div class="card card1 blue">
+                            <div class="card-header1">
+                                <h2>Total Sales</h2>
+                                <span class="{reportData.totalSales > 0 ? 'positive1' : 'muted5'}">
+                                    {reportData.totalSales > 0 ? '+2.08%' : 'No data'}
+                                </span>
+                            </div>
 
-                    <div class="card card2">
-                        <div class="card-header2">
-                        <h2>Total Orders</h2>
-                        <span class="{reportData.totalOrders > 0 ? 'positive2' : 'muted5'}">
-                            {reportData.totalOrders > 0 ? '+12.4%' : 'No data'}
-                        </span>
+                            <p class="value1">₱{reportData.totalSales.toLocaleString()}</p>
+                            <p class="desc1">Products vs last month</p>
                         </div>
-                        <p class="value2">{reportData.totalOrders.toLocaleString()}</p>
-                        <p class="desc2">Orders vs last month</p>
-                    </div>
 
-                    <div class="card card5">
-                        <div class="card-header5">
-                        <h2>Product Statistic</h2>
-                        <span class="muted5">Today</span>
+                        <div class="card card2">
+                            <div class="card-header2">
+                            <h2>Total Orders</h2>
+                            <span class="{reportData.totalOrders > 0 ? 'positive2' : 'muted5'}">
+                                {reportData.totalOrders > 0 ? '+12.4%' : 'No data'}
+                            </span>
+                            </div>
+                            <p class="value2">{reportData.totalOrders.toLocaleString()}</p>
+                            <p class="desc2">Orders vs last month</p>
                         </div>
-                        <div class="stat-body">
-                        <p class="value5">{reportData.productStatistic.toLocaleString()}</p>
-                        <p class="{reportData.productStatistic > 0 ? 'positive5' : 'muted5'}">
-                            {reportData.productStatistic > 0 ? '+5.34%' : 'No activity'}
-                        </p>
-                        <ul>
-                            <li><span>💡 Electronic</span><span class="{reportData.productStatistic > 0 ? 'positive6' : 'muted5'}">
-                            {reportData.productStatistic > 0 ? '+1.8%' : '0%'}
-                            </span></li>
-                            <li><span>🎮 Games</span><span class="{reportData.productStatistic > 0 ? 'positive7' : 'muted5'}">
-                            {reportData.productStatistic > 0 ? '+2.3%' : '0%'}
-                            </span></li>
-                            <li><span>🪑 Furniture</span><span class="{reportData.productStatistic > 0 ? 'negative5' : 'muted5'}">
-                            {reportData.productStatistic > 0 ? '-1.04%' : '0%'}
-                            </span></li>
-                        </ul>
-                        </div>
-                    </div>
 
-                    <div class="card card3">
-                        <div class="card-header3">
-                        <h2>Visitor</h2>
-                        <span class="{reportData.visitor > 0 ? 'negative3' : 'muted5'}">
-                            {reportData.visitor > 0 ? '-2.08%' : 'No visitors'}
-                        </span>
+                        <div class="card card5">
+                            <div class="card-header5">
+                                <h2>Product Statistic</h2>
+                                <span class="muted5">Today</span>
+                            </div>
+                            <div class="stat-body">
+                                <p class="value5">{reportData.productStatistic.toLocaleString()}</p>
+                                <p class="{reportData.productStatistic > 0 ? 'positive5' : 'muted5'}">
+                                    {reportData.productStatistic > 0 ? '+5.34%' : 'No activity'}
+                                </p>
+                                <ul>
+                                    <li><span>💡 Electronic</span><span class="{reportData.productStatistic > 0 ? 'positive6' : 'muted5'}">
+                                    {reportData.productStatistic > 0 ? '+1.8%' : '0%'}
+                                    </span></li>
+                                    <li><span>🎮 Games</span><span class="{reportData.productStatistic > 0 ? 'positive7' : 'muted5'}">
+                                    {reportData.productStatistic > 0 ? '+2.3%' : '0%'}
+                                    </span></li>
+                                    <li><span>🪑 Furniture</span><span class="{reportData.productStatistic > 0 ? 'negative5' : 'muted5'}">
+                                    {reportData.productStatistic > 0 ? '-1.04%' : '0%'}
+                                    </span></li>
+                                </ul>
+                            </div>
                         </div>
-                        <p class="value3">{reportData.visitor.toLocaleString()}</p>
-                        <p class="desc3">Users vs last month</p>
-                    </div>
 
-                    <div class="card card4">
-                        <div class="card-header4">
-                        <h2>Total Sold Products</h2>
-                        <span class="{reportData.totalSoldProducts > 0 ? 'positive4' : 'muted5'}">
-                            {reportData.totalSoldProducts > 0 ? '+12.1%' : 'No sales'}
-                        </span>
+                        <div class="card card3">
+                            <div class="card-header3">
+                                <h2>Visitor</h2>
+                                <span class="{reportData.visitor > 0 ? 'negative3' : 'muted5'}">
+                                    {reportData.visitor > 0 ? '-2.08%' : 'No visitors'}
+                                </span>
+                            </div>
+                            <p class="value3">{reportData.visitor.toLocaleString()}</p>
+                            <p class="desc3">Users vs last month</p>
                         </div>
-                        <p class="value4">{reportData.totalSoldProducts.toLocaleString()}</p>
-                        <p class="desc4">Products vs last month</p>
-                    </div>
 
-                    <div class="card card6">
-                        <div class="card-header6">
-                        <h2>Customer Habits</h2>
-                        <span class="muted6">This year</span>
-                        </div>
-                        <div class="chart-placeholder6">
-                        {#if reportData.totalSales > 0}
-                            📊 Active Customer Data
-                        {:else}
-                            📊 No data available
-                        {/if}
-                        </div>
-                    </div>
+                        <div class="card card4">
+                            <div class="card-header4">
+                                <h2>Total Sold Products</h2>
+                                <span class="{reportData.totalSoldProducts > 0 ? 'positive4' : 'muted5'}">
+                                    {reportData.totalSoldProducts > 0 ? '+12.1%' : 'No sales'}
+                                </span>
+                            </div>
 
-                    <div class="card card7">
-                        <div class="card-header7">
-                        <h2>Customer Growth</h2>
-                        <span class="muted7">Today</span>
+                            <p class="value4">{reportData.totalSoldProducts.toLocaleString()}</p>
+                            <p class="desc4">Products vs last month</p>
                         </div>
-                        <ul class="growth-list7">
-                        {#if reportData.totalSales > 0}
-                            <li><span>🇺🇸 United States</span><span>{Math.floor(reportData.visitor * 0.4)}</span></li>
-                            <li><span>🇩🇪 Germany</span><span>{Math.floor(reportData.visitor * 0.3)}</span></li>
-                            <li><span>🇦🇺 Australia</span><span>{Math.floor(reportData.visitor * 0.2)}</span></li>
-                            <li><span>🇫🇷 France</span><span>{Math.floor(reportData.visitor * 0.1)}</span></li>
-                        {:else}
-                            <li><span>🇺🇸 United States</span><span>0</span></li>
-                            <li><span>🇩🇪 Germany</span><span>0</span></li>
-                            <li><span>🇦🇺 Australia</span><span>0</span></li>
-                            <li><span>🇫🇷 France</span><span>0</span></li>
-                        {/if}
-                        </ul>
-                    </div>
+
+                        <div class="card card6">
+                            <div class="card-header6">
+                                <h2>Customer Habits</h2>
+                                <span class="muted6">This year</span>
+                            </div>
+
+                            <div class="chart-placeholder6">
+                                {#if reportData.totalSales > 0}
+                                    📊 Active Customer Data
+                                {:else}
+                                    📊 No data available
+                                {/if}
+                            </div>
+                        </div>
+
+                        <div class="card card7">
+                            <div class="card-header7">
+                                <h2>Customer Growth</h2>
+                                <span class="muted7">Today</span>
+                            </div>
+                            <ul class="growth-list7">
+                                {#if reportData.totalSales > 0}
+                                    <li><span>🇺🇸 United States</span><span>{Math.floor(reportData.visitor * 0.4)}</span></li>
+                                    <li><span>🇩🇪 Germany</span><span>{Math.floor(reportData.visitor * 0.3)}</span></li>
+                                    <li><span>🇦🇺 Australia</span><span>{Math.floor(reportData.visitor * 0.2)}</span></li>
+                                    <li><span>🇫🇷 France</span><span>{Math.floor(reportData.visitor * 0.1)}</span></li>
+                                {:else}
+                                    <li><span>🇺🇸 United States</span><span>0</span></li>
+                                    <li><span>🇩🇪 Germany</span><span>0</span></li>
+                                    <li><span>🇦🇺 Australia</span><span>0</span></li>
+                                    <li><span>🇫🇷 France</span><span>0</span></li>
+                                {/if}
+                            </ul>
+                        </div>
                     </div>
                 </section>
             {/if}
@@ -2262,20 +2244,19 @@
 
                             </div>
                         {:else}
-                            <div class="product-grid-section">
-                                
+                            <div class="product-grid-section">  
                                 {#if currentProducts && currentProducts.length > 0}
                                     <div class="product-grid">
                                         {#each currentProducts as product}
-                                            <div class="product-item" on:click={() => selectProduct(product)}>
+                                            <button type="button" class="product-item" on:click={() => selectProduct(product)}>
                                                 <div class="product-image-container">
                                                     <img src={product.image} alt={product.name} />
                                                 </div>
                                                 <div class="product-info">
-                                                    <h3 class="product-name" data-category="{product.name.toLowerCase()}">{product.name}</h3>
+                                                    <h3 class="product-name" data-category={product.name.toLowerCase()}>{product.name}</h3>
                                                     <small class="product-count">{product.subitems?.length || 0} items</small>
                                                 </div>
-                                            </div>
+                                            </button>
                                         {/each}
                                     </div>
                                 {:else}
@@ -2289,86 +2270,6 @@
                         {/if}
                     </div>
                 {/if}
-            {/if}
-
-            {#if activeSection === "consumer"}
-                <div class="consumer-management">
-                    <div class="section-header">
-                    <h2>Consumer Management</h2>
-                    <div class="search-container">
-                        <i class="bx bx-search"></i>
-                        <input type="text" placeholder="Search consumers..." class="search-input" />
-                    </div>
-                    </div>
-
-                    <div class="metrics-grid-consumer">
-                    <div class="metric-card-consumer">
-                        <div class="metric-icon">👥</div>
-                        <div class="metric-content">
-                        <h3>Total Consumers</h3>
-                        <div class="metric-value-consumer">{consumerData.totalConsumers.toLocaleString()}</div>
-                        <div class="metric-change {consumerData.totalConsumers > 0 ? 'positive' : ''}">
-                            {consumerData.totalConsumers > 0 ? '+5.2%' : 'No growth'}
-                        </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card-consumer">
-                        <div class="metric-icon">✅</div>
-                        <div class="metric-content">
-                        <h3>Active Consumers</h3>
-                        <div class="metric-value-consumer">{consumerData.activeConsumers.toLocaleString()}</div>
-                        <div class="metric-change {consumerData.activeConsumers > 0 ? 'positive' : ''}">
-                            {consumerData.activeConsumers > 0 ? '+3.1%' : 'No activity'}
-                        </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card-consumer">
-                        <div class="metric-icon">🆕</div>
-                        <div class="metric-content">
-                        <h3>New This Month</h3>
-                        <div class="metric-value-consumer">{consumerData.newThisMonth.toLocaleString()}</div>
-                        <div class="metric-change {consumerData.newThisMonth > 0 ? 'positive' : ''}">
-                            {consumerData.newThisMonth > 0 ? '+12.8%' : 'No new consumers'}
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <div class="recent-consumers">
-                    <h3>Recent Consumers</h3>
-                    <div class="consumers-list">
-                        {#if consumerData.totalConsumers > 0}
-                        {#each Array.from({length: Math.min(5, consumerData.newThisMonth)}, (_, i) => i) as index}
-                            <div class="consumer-item">
-                            <div class="consumer-avatar">
-                                <div class="avatar-placeholder">C{index + 1}</div>
-                            </div>
-                            <div class="consumer-details">
-                                <h4>Customer {index + 1}</h4>
-                                <p>customer{index + 1}@example.com</p>
-                            </div>
-                            <div class="consumer-status active">
-                                Active
-                            </div>
-                            <div class="consumer-actions">
-                                <button class="action-btn view">View</button>
-                                <button class="action-btn edit">Edit</button>
-                            </div>
-                            </div>
-                        {/each}
-                        {:else}
-                        <div class="consumer-item empty-state">
-                            <div class="consumer-details">
-                            <p>No consumer data available</p>
-                            <small>Consumer data will appear after transactions</small>
-                            </div>
-                        </div>
-                        {/if}
-                    </div>
-                    </div>
-                </div>
             {/if}
 
             {#if activeSection === "transactions"}
@@ -2443,89 +2344,6 @@
                             <div class="transaction-details">
                             <p>No transactions yet</p>
                             <small>Transactions will appear after successful checkouts</small>
-                            </div>
-                        </div>
-                        {/if}
-                    </div>
-                    </div>
-                </div>
-            {/if}
-
-            {#if activeSection === "invoices"}
-                <div class="invoices-management">
-                    <div class="section-header">
-                    <h2>Invoices</h2>
-                    <div class="header-actions">
-                        <button class="btn-primary">+ Create Invoice</button>
-                        <div class="filter-container">
-                        <select>
-                            <option>All Status</option>
-                            <option>Paid</option>
-                            <option>Pending</option>
-                            <option>Overdue</option>
-                        </select>
-                        </div>
-                    </div>
-                    </div>
-
-                    <div class="metrics-grid-invoices">
-                    <div class="metric-card-invoice paid">
-                        <div class="metric-content">
-                        <h3>Paid</h3>
-                        <div class="metric-value-invoice">{invoiceData.paid}</div>
-                        <div class="metric-desc">
-                            {invoiceData.paid > 0 ? '68% of total' : 'No invoices'}
-                        </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card-invoice pending">
-                        <div class="metric-content">
-                        <h3>Pending</h3>
-                        <div class="metric-value-invoice">{invoiceData.pending}</div>
-                        <div class="metric-desc">
-                            {invoiceData.pending > 0 ? '25% of total' : 'No invoices'}
-                        </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card-invoice overdue">
-                        <div class="metric-content">
-                        <h3>Overdue</h3>
-                        <div class="metric-value-invoice">{invoiceData.overdue}</div>
-                        <div class="metric-desc">
-                            {invoiceData.overdue > 0 ? '7% of total' : 'No invoices'}
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <div class="recent-invoices">
-                    <h3>Recent Invoices</h3>
-                    <div class="invoices-list">
-                        {#if invoiceData.paid > 0}
-                        {#each Array.from({length: Math.min(5, invoiceData.paid + invoiceData.pending + invoiceData.overdue)}, (_, i) => i) as index}
-                            <div class="invoice-item">
-                            <div class="invoice-icon">📄</div>
-                            <div class="invoice-details">
-                                <h4>INV-{new Date().getFullYear()}-{String(index + 1).padStart(3, '0')}</h4>
-                                <p>Customer {index + 1} • Due: {new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
-                            </div>
-                            <div class="invoice-amount">₱{Math.floor(dashboardData.todaySales * 0.8 + index * 500).toLocaleString()}</div>
-                            <div class="invoice-status {index % 3 === 0 ? 'paid' : index % 3 === 1 ? 'pending' : 'overdue'}">
-                                {index % 3 === 0 ? 'Paid' : index % 3 === 1 ? 'Pending' : 'Overdue'}
-                            </div>
-                            <div class="invoice-actions">
-                                <button class="action-btn view">View</button>
-                                <button class="action-btn download">Download</button>
-                            </div>
-                            </div>
-                        {/each}
-                        {:else}
-                        <div class="invoice-item empty-state">
-                            <div class="invoice-details">
-                            <p>No invoices available</p>
-                            <small>Invoices will appear after transactions</small>
                             </div>
                         </div>
                         {/if}
@@ -2610,10 +2428,10 @@
             {/if}
 
             {#if showSettingsModal}
-            <div class="modal-overlay" on:click={closeSettingsModal}>
-                <div class="modal-content" on:click|stopPropagation>
+            <div class="modal-overlay" role="button" tabindex="0" aria-label={"Close " + settingsModalTitle + " modal"} on:click={closeSettingsModal} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { closeSettingsModal() } }}>
+                <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1" on:click|stopPropagation>
                     <div class="modal-header">
-                        <h3>{settingsModalTitle}</h3>
+                        <h3 id="settings-modal-title">{settingsModalTitle}</h3>
                         <button class="close-btn" on:click={closeSettingsModal}>×</button>
                     </div>
                     
@@ -3078,10 +2896,10 @@
 {/if}
 
 {#if showCheckoutModal}
-<div class="checkout-modal-overlay" on:click={closeCheckoutModal}>
-    <div class="checkout-modal" on:click|stopPropagation>
+<div class="checkout-modal-overlay" role="button" tabindex="0" aria-label="Close checkout modal" on:click={closeCheckoutModal} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { closeCheckoutModal() } }}>
+    <div class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title" tabindex="-1" on:click|stopPropagation>
         <div class="checkout-header">
-            <h2>Checkout</h2>
+            <h2 id="checkout-modal-title">Checkout</h2>
             <button class="close-checkout-btn" on:click={closeCheckoutModal}>×</button>
         </div>
 
@@ -3311,7 +3129,7 @@
 
     .sidebar .img-wrapper img {
         width: 50px;
-        height: 300%;
+        height: 100%;
         object-fit: contain;
     }
 
@@ -3395,56 +3213,44 @@
     }
 
     .register-section {
-        margin-top: -15px;
+        margin-top: 20px;
         padding: 15px 20px;
         width: 100%;
         display: flex;
         justify-content: center;
     }
 
-    .register-btn, .logout-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        width: calc(100% - 20px);
-        background: #3B5AFE;
-        color: white;
-        border: none;
-        border-radius: 25px;
-        padding: 10px 0;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s ease;
-    }
-
-    .logout-btn {
-        background: #dc3545;
-        margin-left: -15px;
-        height: 30px;
-        width: 100px;
-    }
-    .register-btn:hover {
-        background: #2E47E6;
-    }
-
-    .logout-btn:hover {
-        background: transparent;
-        border: 1px solid #dc3545;
-        color: #dc3545;
-        font-weight: 20px;
-    }
-
     .user-welcome {
-         display: flex;
-        align-items: center;
-        gap: -5px; 
-        color: #3B5AFE;
-        font-weight: 600;
-        font-size: 14px;
-        padding: 10px 15px;
-    }
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.user-welcome span {
+    font-weight: 600;
+    color: #3B5AFE;
+}
+
+.logout-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100px;
+}
+
+.logout-btn:hover {
+    background: transparent;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
 
     .modal-overlay {
     position: fixed;
@@ -4259,13 +4065,6 @@ input::placeholder {
         flex: 1;
     }
 
-    .main-tabs {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        flex: 1;
-    }
-
     .gender-tabs {
         display: flex;
         gap: 10px;
@@ -4524,9 +4323,7 @@ input::placeholder {
         padding: 2px 0;
     }
 
-    .subitem-action {
-        margin-top: auto;
-    }
+
 
     /* Grid Layouts */
     .product-grid,
@@ -4562,16 +4359,7 @@ input::placeholder {
         font-size: 18px;
     }
 
-    .cart-toggle-btn {
-        width: 100%;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
+
 
     /* ADD TO CART */
     .add-cart-btn {
@@ -4638,21 +4426,7 @@ input::placeholder {
     }
 
     /* Cart Preview Styles */
-    .cart-preview {
-        text-align: center;
-        padding: 15px 0;
-        border-bottom: 1px solid white;
-        margin-bottom: 20px;
-    }
 
-    .cart-preview-img {
-        width: 120px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-bottom: 15px;
-        border: 2px solid white;
-    }
 
     .cart-item-name {
         font-size: 1.1rem;
@@ -5471,216 +5245,7 @@ input::placeholder {
         }
     }
 
-    .consumer-management {
-    padding: 20px;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.section-header h2 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0;
-}
-
-.search-container {
-    position: relative;
-    width: 300px;
-}
-
-.search-input {
-    width: 100%;
-    padding: 12px 20px 12px 45px;
-    border: 2px solid #e5e7eb;
-    border-radius: 25px;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.3s ease;
-}
-
-.search-input:focus {
-    border-color: #3B5AFE;
-}
-
-.search-container i {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6b7280;
-    font-size: 18px;
-}
-
-.metrics-grid-consumer {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.metric-card-consumer {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    transition: transform 0.3s ease;
-}
-
-.metric-card-consumer:hover {
-    transform: translateY(-5px);
-}
-
-.metric-icon {
-    font-size: 2.5rem;
-    width: 70px;
-    height: 70px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafc;
-    border-radius: 15px;
-}
-
-.metric-content h3 {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0 0 8px 0;
-    font-weight: 500;
-}
-
-.metric-value-consumer {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 5px 0;
-}
-
-.recent-consumers {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.recent-consumers h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0 0 20px 0;
-}
-
-.consumers-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.consumer-item {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 12px;
-    gap: 15px;
-    transition: background-color 0.3s ease;
-}
-
-.consumer-item:hover {
-    background: #f1f5f9;
-}
-
-.avatar-placeholder {
-    width: 50px;
-    height: 50px;
-    background: #3B5AFE;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-.consumer-details {
-    flex: 1;
-}
-
-.consumer-details h4 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0 0 5px 0;
-}
-
-.consumer-details p {
-    color: #6b7280;
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-.consumer-status {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.consumer-status.active {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.consumer-status.inactive {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.consumer-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.action-btn {
-    padding: 8px 16px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.action-btn.view {
-    background: #3B5AFE;
-    color: white;
-    border-color: #3B5AFE;
-}
-
-.action-btn.view:hover {
-    background: #2E47E6;
-}
-
-.action-btn.edit {
-    background: white;
-    color: #374151;
-}
-
-.action-btn.edit:hover {
-    background: #f8fafc;
-}
-
-/* TRANSACTIONS STYLES */
+    /* TRANSACTIONS STYLES */
 .transactions-management {
     padding: 20px;
 }
@@ -5795,110 +5360,6 @@ input::placeholder {
 .transaction-status.processing {
     background: #dbeafe;
     color: #1e40af;
-}
-
-/* INVOICES STYLES */
-.invoices-management {
-    padding: 20px;
-}
-
-.header-actions {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-.btn-primary {
-    background: #3B5AFE;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.btn-primary:hover {
-    background: #2E47E6;
-}
-
-.metrics-grid-invoices {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.metric-card-invoice {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-}
-
-.metric-card-invoice:hover {
-    transform: translateY(-5px);
-}
-
-.metric-card-invoice.paid {
-    border-left: 4px solid #10b981;
-}
-
-.metric-card-invoice.pending {
-    border-left: 4px solid #f59e0b;
-}
-
-.metric-card-invoice.overdue {
-    border-left: 4px solid #ef4444;
-}
-
-.metric-value-invoice {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 10px 0 5px 0;
-}
-
-.invoices-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.invoice-item {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 12px;
-    gap: 15px;
-}
-
-.invoice-status.paid {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.invoice-status.pending {
-    background: #fef9c3;
-    color: #854d0e;
-}
-
-.invoice-status.overdue {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.action-btn.download {
-    background: #6b7280;
-    color: white;
-    border: none;
-}
-
-.action-btn.download:hover {
-    background: #4b5563;
 }
 
 /* SETTINGS STYLES */
@@ -6369,22 +5830,20 @@ input::placeholder {
     border: 2px solid #4CAF50;
 }
 
-/* Star color variations based on rating */
 .star-btn.active[data-star="1"],
 .star-btn.active[data-star="2"] {
-    color: #ff6b6b; /* Red for low ratings */
+    color: #ff6b6b; 
 }
 
 .star-btn.active[data-star="3"] {
-    color: #ffa726; /* Orange for medium ratings */
+    color: #ffa726; 
 }
 
 .star-btn.active[data-star="4"],
 .star-btn.active[data-star="5"] {
-    color: #4CAF50; /* Green for high ratings */
+    color: #4CAF50; 
 }
 
-/* Pulse animation when selecting */
 .star-btn.active {
     animation: pulse 0.5s ease;
 }
@@ -6395,7 +5854,6 @@ input::placeholder {
     100% { transform: scale(1.2); }
 }
 
-/* HELP STYLES */
 .help-management {
     padding: 20px;
 }
@@ -6466,9 +5924,7 @@ input::placeholder {
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 1024px) {
-    .metrics-grid-consumer,
     .metrics-grid-transactions,
-    .metrics-grid-invoices,
     .metrics-grid-feedback {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -6480,9 +5936,7 @@ input::placeholder {
 }
 
 @media (max-width: 768px) {
-    .metrics-grid-consumer,
     .metrics-grid-transactions,
-    .metrics-grid-invoices,
     .metrics-grid-feedback {
         grid-template-columns: 1fr;
     }
