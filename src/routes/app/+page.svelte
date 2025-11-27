@@ -1,10 +1,12 @@
+
+
 <script lang="ts">
-     import { onMount } from 'svelte';
+    import { onMount, afterUpdate } from 'svelte';
     import { cart } from '$lib/stores/cart';
     import { get } from 'svelte/store';
     import type { SubItem, Product, GenderCategory, MainCategory } from '$lib/types';
 
-    let categories: MainCategory[] = [
+let categories: MainCategory[] = [
     {
       id: 800,
       name: "Clothing",
@@ -1120,188 +1122,843 @@
     
   ];
 
-  // ========== DATA VARIABLES ==========
-  let dashboardData = {
-    todaySales: 0,
-    pendingOrders: 0,
-    newCustomers: 0,
-    conversionRate: 0
-  };
 
-  let reportData = {
-    totalSales: 0,
-    totalOrders: 0,
-    productStatistic: 0,
-    visitor: 0,
-    totalSoldProducts: 0
-  };
+    // ========== DATA VARIABLES ==========
+    let dashboardData = {
+        todaySales: 0,
+        pendingOrders: 0,
+        newCustomers: 0,
+        conversionRate: 0
+    };
 
-  let transactionData = {
-    totalAmount: 0,
-    completedAmount: 0,
-    pendingAmount: 0
-  };
+    let reportData = {
+        totalSales: 0,
+        totalOrders: 0,
+        productStatistic: 0,
+        visitor: 0,
+        totalSoldProducts: 0
+    };
 
-  let feedbackData = {
-    totalReviews: 0,
-    positiveReviews: 0,
-    averageRating: 0
-  };
+    let transactionData = {
+        totalAmount: 0,
+        completedAmount: 0,
+        pendingAmount: 0
+    };
 
-  // Profile and Settings
-  let profileInfo = {
-    name: "Edrian Dela Cruz",
-    email: "edriandelacruz@gmail.com",
-    phone: "09354817174"
-  };
-  
-  let securitySettings = {
-    twoFactorEnabled: false,
-    passwordLastChanged: "2023-10-15"
-  };
-  
-  let notificationPrefs = {
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true
-  };
-  
-  let storeInfo = {
-    name: "My Awesome Store",
-    description: "Quality products for everyone",
-    contactEmail: "store@example.com"
-  };
-  
-  let paymentMethods = [
-    { id: 1, type: "Credit Card", lastFour: "4242", isDefault: true },
-    { id: 2, type: "PayPal", email: "user@example.com", isDefault: false }
-  ];
-  
-  let shippingOptions = [
-    { id: 1, name: "Standard Shipping", cost: 5.99, days: "3-5" },
-    { id: 2, name: "Express Shipping", cost: 12.99, days: "1-2" }
-  ];
-  
-  let taxConfig = {
-    rate: 8.5,
-    enabled: true,
-    country: "United States"
-  };
-  
-  let currencySettings = {
-    currency: "USD",
-    symbol: "$"
-  };
-  
-  let businessHours = {
-    monday: { open: "09:00", close: "17:00", closed: false },
-    tuesday: { open: "09:00", close: "17:00", closed: false },
-    wednesday: { open: "09:00", close: "17:00", closed: false },
-    thursday: { open: "09:00", close: "17:00", closed: false },
-    friday: { open: "09:00", close: "17:00", closed: false },
-    saturday: { open: "10:00", close: "14:00", closed: false },
-    sunday: { open: "", close: "", closed: true }
-  };
+    let feedbackData = {
+        totalReviews: 0,
+        positiveReviews: 0,
+        averageRating: 0
+    };
 
-  // ========== APPLICATION STATE ==========
-  let showModal = false;
-  let isLoggedIn = false;
-  let currentUser = '';
-  let showMenu = false;
-  let showUserMenu = false;
-  
-  let activeSection:
-    | "dashboard"
-    | "report"
-    | "products"
-    | "transactions"
-    | "settings"
-    | "feedback"
-    | "help" = "dashboard";
-
-  let showSubmenu = false;
-  let hoveredNav: string = "";
-  let activeSubmenu: string | null = "Clothing"; 
-
-  let selectedMainCategory: MainCategory;
-  let selectedGenderIndex: number = 0;
-  let selectedGender: GenderCategory;
-  let selectedKidsCategory: string | null = null;
-  let selectedProduct: Product | null = null;
-  let selectedProductName: string | null = null;
-
-  let selectedSubitem: SubItem | null = null;
-  let quantity = 1;
-  let searchQuery = "";
-
-  let cartItems: Array<{item: SubItem, quantity: number}> = [];
-  let cartTotal = 0;
-  let cartItemCount = 0;
-
-  let showCheckoutModal = false;
-  let showSuccessModal = false;
-  let paymentMethod: "card" | "cash" | null = null;
-  let cashAmount = 0;
-  let changeAmount = 0;
-  let transactionDetails: any = null;
-
-  // Settings modal state
-  let showSettingsModal = false;
-  let settingsModalTitle = "";
-  let settingsModalContent = "";
-  let currentSetting = "";
-
-  // ========== COMPUTED PROPERTIES ==========
-  $: showKidsSubcategories = selectedGenderIndex === 2 && selectedGender?.children;
-  $: canShowProducts = selectedGenderIndex !== 2 || (selectedGenderIndex === 2 && selectedKidsCategory);
-
-  $: currentProducts = (() => {
-    if (!selectedGender) return [];
+    // Profile and Settings
+    let profileInfo = {
+        name: "Edrian Dela Cruz",
+        email: "edriandelacruz@gmail.com",
+        phone: "09354817174"
+    };
     
-    if (selectedGenderIndex === 2 && selectedKidsCategory && selectedGender.children) {
-      const kidsCategory = selectedGender.children.find(child => child.name === selectedKidsCategory);
-      return kidsCategory ? kidsCategory.products : [];
-    } else {
-      return selectedGender.products;
+    let securitySettings = {
+        twoFactorEnabled: false,
+        passwordLastChanged: "2023-10-15"
+    };
+    
+    let notificationPrefs = {
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: true
+    };
+    
+    let storeInfo = {
+        name: "My Awesome Store",
+        description: "Quality products for everyone",
+        contactEmail: "store@example.com"
+    };
+    
+    let paymentMethods = [
+        { id: 1, type: "Credit Card", lastFour: "4242", isDefault: true },
+        { id: 2, type: "PayPal", email: "user@example.com", isDefault: false }
+    ];
+    
+    let shippingOptions = [
+        { id: 1, name: "Standard Shipping", cost: 5.99, days: "3-5" },
+        { id: 2, name: "Express Shipping", cost: 12.99, days: "1-2" }
+    ];
+    
+    let taxConfig = {
+        rate: 8.5,
+        enabled: true,
+        country: "United States"
+    };
+    
+    let currencySettings = {
+        currency: "USD",
+        symbol: "$"
+    };
+    
+    let businessHours = {
+        monday: { open: "09:00", close: "17:00", closed: false },
+        tuesday: { open: "09:00", close: "17:00", closed: false },
+        wednesday: { open: "09:00", close: "17:00", closed: false },
+        thursday: { open: "09:00", close: "17:00", closed: false },
+        friday: { open: "09:00", close: "17:00", closed: false },
+        saturday: { open: "10:00", close: "14:00", closed: false },
+        sunday: { open: "", close: "", closed: true }
+    };
+
+    // ========== CHART DATA ==========
+    let salesLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    let salesValues = [0, 0, 0, 0, 0, 0, 0]; // Start with zeros
+    let categoryLabels = ["Clothing", "Footwear", "Accessories"];
+    let categoryValues = [0, 0, 0]; // Start with zeros
+    let salesChart: any;
+    let categoryChart: any;
+    let chartsInitialized = false;
+
+    // ========== APPLICATION STATE ==========
+    let showModal = false;
+    let isLoggedIn = false;
+    let currentUser = '';
+    let showMenu = false;
+    let showUserMenu = false;
+    
+    let activeSection:
+        | "dashboard"
+        | "report"
+        | "products"
+        | "transactions"
+        | "settings"
+        | "feedback"
+        | "help" = "dashboard";
+
+    let showSubmenu = false;
+    let hoveredNav: string = "";
+    let activeSubmenu: string | null = "Clothing"; 
+
+    let selectedMainCategory: MainCategory;
+    let selectedGenderIndex: number = 0;
+    let selectedGender: GenderCategory;
+    let selectedKidsCategory: string | null = null;
+    let selectedProduct: Product | null = null;
+    let selectedProductName: string | null = null;
+
+    let selectedSubitem: SubItem | null = null;
+    let quantity = 1;
+    let searchQuery = "";
+
+    let cartItems: Array<{item: SubItem, quantity: number}> = [];
+    let cartTotal = 0;
+    let cartItemCount = 0;
+
+    let showCheckoutModal = false;
+    let showSuccessModal = false;
+    let paymentMethod: "card" | "cash" | null = null;
+    let cashAmount = 0;
+    let changeAmount = 0;
+    let transactionDetails: any = null;
+
+    // Settings modal state
+    let showSettingsModal = false;
+    let settingsModalTitle = "";
+    let settingsModalContent = "";
+    let currentSetting = "";
+
+    // ========== COMPUTED PROPERTIES ==========
+    $: showKidsSubcategories = selectedGenderIndex === 2 && selectedGender?.children;
+    $: canShowProducts = selectedGenderIndex !== 2 || (selectedGenderIndex === 2 && selectedKidsCategory);
+
+    $: currentProducts = (() => {
+        if (!selectedGender) return [];
+        
+        if (selectedGenderIndex === 2 && selectedKidsCategory && selectedGender.children) {
+            const kidsCategory = selectedGender.children.find(child => child.name === selectedKidsCategory);
+            return kidsCategory ? kidsCategory.products : [];
+        } else {
+            return selectedGender.products;
+        }
+    })();
+
+    $: filteredSubitems = selectedProduct ? selectedProduct.subitems.filter(subitem => 
+        subitem.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ) : [];
+
+    $: {
+        try {
+            const storeCart = get(cart);
+            if (Array.isArray(storeCart)) {
+                cartItems = storeCart;
+            }
+        } catch (error) {
+            console.warn('Cart store not available, using local state');
+        }
+        
+        cartTotal = cartItems.reduce((total, item) => total + (item.item.price * item.quantity), 0);
+        cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
     }
-  })();
 
-  $: filteredSubitems = selectedProduct ? selectedProduct.subitems.filter(subitem => 
-    subitem.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : [];
+    // ========== AUTH FUNCTIONS ==========
+    function handleSubmit(e: Event) {
+        e.preventDefault();
+        
+        const loginUsername = document.getElementById('login-username') as HTMLInputElement;
+        const loginPassword = document.getElementById('login-password') as HTMLInputElement;
+        
+        if (loginUsername && loginPassword) {
+            if (loginUsername.value.trim() && loginPassword.value.trim()) {
+                currentUser = loginUsername.value;
+                isLoggedIn = true;
+                showModal = false;
+                
+                activeSection = "products";
+                showSubmenu = true;
+                
+                // Initialize categories for products section
+                if (typeof categories !== 'undefined' && categories.length > 0) {
+                    selectedMainCategory = categories[0]; 
+                    if (categories[0].genders.length > 0) {
+                        selectedGender = categories[0].genders[0]; 
+                        selectedGenderIndex = 0;
+                        activeSubmenu = "Clothing";
+                    }
+                }
+                
+                localStorage.setItem('currentUser', currentUser);
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                const authForm = document.getElementById('auth-form') as HTMLFormElement;
+                if (authForm) {
+                    authForm.reset();
+                }
+            }
+        }
+    }
 
-  $: {
-    try {
-      const storeCart = get(cart);
-      if (Array.isArray(storeCart)) {
-        cartItems = storeCart;
-      }
-    } catch (error) {
-      console.warn('Cart store not available, using local state');
+    function handleUsernameInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (input.value.length >= 6) {
+            input.value = input.value.slice(0, 6);
+        }
+    }
+
+     function logout() {
+        isLoggedIn = false;
+        currentUser = '';
+        showModal = false;
+        
+        // AUTO-REDIRECT TO DASHBOARD AFTER LOGOUT
+        activeSection = "dashboard";
+        
+        // Clear any product-related selections
+        selectedProduct = null;
+        selectedProductName = null;
+        showSubmenu = false;
+        activeSubmenu = null;
+        
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isLoggedIn');
+        
+        cartItems = [];
+        try {
+            cart.set([]);
+        } catch (error) {
+            console.warn('Could not clear cart store');
+        }
+    }
+
+    function handleOverlayClick(e: MouseEvent) {
+        if ((e.target as HTMLElement).id === 'modal-overlay') {
+            showModal = false;
+        }
+    }
+
+    // ========== PRODUCTS AND CART FUNCTIONS ==========
+    function isSubitemInCart(subitem: SubItem): boolean {
+        try {
+            return cartItems.some(c => c.item.id === subitem.id);
+        } catch (error) {
+            console.error('Error checking cart:', error);
+            return false;
+        }
+    }
+
+    function toggleSubitemInCart(subitem: SubItem) {
+        try {
+            const existingIndex = cartItems.findIndex(c => c.item.id === subitem.id);
+            
+            if (existingIndex > -1) {
+                cartItems = cartItems.filter(c => c.item.id !== subitem.id);
+            } else {
+                cartItems = [...cartItems, { 
+                    item: subitem, 
+                    quantity: 1 
+                }];
+            }
+            
+            cart.set(cartItems);
+        } catch (error) {
+            console.error('Error updating cart:', error);
+        }
+    }
+
+    function increaseQuantity(itemId: number) {
+        cartItems = cartItems.map(c =>
+            c.item.id === itemId ? { ...c, quantity: c.quantity + 1 } : c
+        );
+        
+        try {
+            cart.set(cartItems);
+        } catch (error) {
+            console.warn('Could not update cart store, using local state only');
+        }
+    }
+
+    function decreaseQuantity(itemId: number) {
+        const itemIndex = cartItems.findIndex(c => c.item.id === itemId);
+        
+        if (itemIndex > -1) {
+            const currentItem = cartItems[itemIndex];
+            
+            if (currentItem.quantity > 1) {
+                cartItems[itemIndex] = {
+                    ...currentItem,
+                    quantity: currentItem.quantity - 1
+                };
+            } else {
+                cartItems.splice(itemIndex, 1);
+            }
+            cartItems = [...cartItems];
+        }
+    }
+
+    function removeFromCart(itemId: number) {
+        cartItems = cartItems.filter(c => c.item.id !== itemId);
+        
+        try {
+            cart.set(cartItems);
+        } catch (error) {
+            console.warn('Could not update cart store, using local state only');
+        }
+    }
+
+    // ========== NAVIGATION FUNCTIONS ==========
+    function setSection(section: typeof activeSection) {
+        // Check if user is logged in before allowing access to products
+        if (section === "products" && !isLoggedIn) {
+            showModal = true; // Show login modal if not logged in
+            return; // Don't change section
+        }
+        
+        if (section === "products" && activeSection === "products") {
+            showSubmenu = false;
+            hoveredNav = "";
+        } else {
+            activeSection = section;
+            showSubmenu = section === "products";
+            if (section !== "products") activeSubmenu = null;
+        }
+
+        // Re-initialize charts when switching to dashboard
+        if (section === "dashboard") {
+            setTimeout(() => {
+                initializeCharts();
+            }, 100);
+        }
+    }
+
+    function selectMainCategory(category: MainCategory) {
+        selectedMainCategory = category;
+        selectedGender = category.genders[0];
+        selectedGenderIndex = 0;
+        selectedKidsCategory = null;
+        selectedProduct = null;
+        selectedProductName = null;
+    }
+
+    function selectGender(index: number) {
+        if (!selectedMainCategory || selectedMainCategory.genders.length <= index) return;
+
+        selectedGenderIndex = index;
+        selectedGender = selectedMainCategory.genders[index];
+        selectedKidsCategory = null;
+        selectedProduct = null;
+        selectedProductName = null;
+    }
+
+    function selectKidsCategory(categoryName: string) {
+        selectedKidsCategory = categoryName;
+        selectedProduct = null;
+        selectedProductName = null;
+    }
+
+    function selectProduct(product: Product) {
+        selectedProduct = product;
+        selectedProductName = product.name;
+    }
+
+    function goBack() {
+        selectedProduct = null;
+        selectedProductName = null;
+    }
+
+    function selectSubitem(subitem: SubItem) {
+        selectedSubitem = subitem;
+        quantity = 1;
+    }
+
+    // ========== CHECKOUT FUNCTIONS ==========
+    function openCheckout() {
+        if (cartItems.length === 0) {
+            alert('Your cart is empty!');
+            return;
+        }
+        showCheckoutModal = true;
+        paymentMethod = null;
+        cashAmount = 0;
+        changeAmount = 0;
+    }
+
+    function closeCheckoutModal() {
+        showCheckoutModal = false;
+        paymentMethod = null;
+        cashAmount = 0;
+        changeAmount = 0;
+    }
+
+    function selectPaymentMethod(method: "card" | "cash") {
+        paymentMethod = method;
+        if (method === "cash") {
+            cashAmount = Math.ceil(cartTotal * 1.08); 
+            calculateChange();
+        }
+    }
+
+    function calculateChange() {
+        changeAmount = Math.max(0, cashAmount - (cartTotal * 1.08));
+    }
+
+    function processPayment() {
+        if (!paymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+
+        if (paymentMethod === "cash" && cashAmount < (cartTotal * 1.08)) {
+            alert('Cash amount is insufficient');
+            return;
+        }
+
+        transactionDetails = {
+            id: 'TXN-' + Date.now(),
+            date: new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }),
+            time: new Date().toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }),
+            items: cartItems,
+            subtotal: cartTotal,
+            tax: cartTotal * 0.03,
+            total: cartTotal * 1.08,
+            paymentMethod: paymentMethod,
+            cashAmount: paymentMethod === 'cash' ? cashAmount : null,
+            change: paymentMethod === 'cash' ? changeAmount : null
+        };
+
+        updateDataAfterCheckout(cartTotal, cartItems.length);
+
+        showCheckoutModal = false;
+        showSuccessModal = true;
+    }
+
+    function updateDataAfterCheckout(totalAmount: number, itemsCount: number) {
+        // Update dashboard data
+        dashboardData.todaySales = totalAmount;
+        dashboardData.pendingOrders = Math.max(1, Math.floor(itemsCount * 0.3));
+        dashboardData.newCustomers = Math.max(1, Math.floor(itemsCount * 0.2));
+        dashboardData.conversionRate = Math.min(5, Math.max(1, itemsCount * 0.8));
+
+        // Update report data
+        reportData.totalSales = totalAmount;
+        reportData.totalOrders = itemsCount;
+        reportData.productStatistic = Math.max(100, itemsCount * 15);
+        reportData.visitor = Math.max(50, Math.floor(itemsCount * 8));
+        reportData.totalSoldProducts = itemsCount;
+
+        // Update transaction data
+        transactionData.totalAmount = totalAmount;
+        transactionData.completedAmount = Math.floor(totalAmount * 0.78);
+        transactionData.pendingAmount = Math.floor(totalAmount * 0.22);
+
+        // Update feedback data
+        feedbackData.totalReviews = Math.max(5, Math.floor(itemsCount * 12));
+        feedbackData.positiveReviews = Math.floor(feedbackData.totalReviews * 0.83);
+        feedbackData.averageRating = 4.5;
+
+        // Update chart data based on checkout
+        updateChartData(totalAmount, itemsCount);
+    }
+
+    function updateChartData(totalAmount: number, itemsCount: number) {
+        // Update sales chart with realistic data
+        salesValues = [
+            Math.floor(totalAmount * 0.15),
+            Math.floor(totalAmount * 0.12),
+            Math.floor(totalAmount * 0.08),
+            Math.floor(totalAmount * 0.18),
+            Math.floor(totalAmount * 0.10),
+            Math.floor(totalAmount * 0.22),
+            Math.floor(totalAmount * 0.15)
+        ];
+
+        // Update category chart based on items count
+        categoryValues = [
+            Math.floor(itemsCount * 0.45), // Clothing 45%
+            Math.floor(itemsCount * 0.30), // Footwear 30%
+            Math.floor(itemsCount * 0.25)  // Accessories 25%
+        ];
+
+        // Update charts if they exist
+        if (salesChart) {
+            salesChart.data.datasets[0].data = salesValues;
+            salesChart.update('none');
+        }
+
+        if (categoryChart) {
+            categoryChart.data.datasets[0].data = categoryValues;
+            categoryChart.update('none');
+        }
+    }
+
+    function printReceipt() {
+        const receiptContent = document.querySelector('.success-modal-content');
+        if (receiptContent) {
+            const printWindow = window.open('', '_blank');
+            printWindow?.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <title>Receipt - Aegix</title>
+                <style>
+                    body { 
+                    font-family: Arial, sans-serif; 
+                    max-width: 300px; 
+                    margin: 20px; 
+                    line-height: 1.4;
+                    }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .divider { border-top: 1px dashed #000; margin: 15px 0; }
+                    .item { display: flex; justify-content: space-between; margin: 5px 0; }
+                    .total { font-weight: bold; margin-top: 10px; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 0.9em; }
+                </style>
+                </head>
+                <body>
+                ${receiptContent.innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow?.document.close();
+            printWindow?.print();
+        }
+    }
+
+    function startNewSale() {
+        cartItems = [];
+        try {
+            cart.set([]);
+        } catch (error) {
+            console.warn('Could not clear cart store');
+        }
+        
+        showSuccessModal = false;
+        transactionDetails = null;
+        
+        // AUTO-REDIRECT TO DASHBOARD AFTER NEW SALE
+        activeSection = "dashboard";
+    }
+
+    afterUpdate(() => {
+        // Re-initialize charts when dashboard becomes active
+        if (activeSection === "dashboard") {
+            setTimeout(() => {
+                if (!chartsInitialized) {
+                    initializeCharts();
+                }
+            }, 100);
+        }
+    });
+
+
+    // ========== SETTINGS FUNCTIONS ==========
+    function openSettingsModal(setting: string, title: string) {
+        currentSetting = setting;
+        settingsModalTitle = title;
+        showSettingsModal = true;
+        
+        switch(setting) {
+            case 'profile':
+                settingsModalContent = 'profile';
+                break;
+            case 'security':
+                settingsModalContent = 'security';
+                break;
+            case 'notifications':
+                settingsModalContent = 'notifications';
+                break;
+            case 'store-info':
+                settingsModalContent = 'store-info';
+                break;
+            case 'payments':
+                settingsModalContent = 'payments';
+                break;
+            case 'shipping':
+                settingsModalContent = 'shipping';
+                break;
+            case 'tax':
+                settingsModalContent = 'tax';
+                break;
+            case 'currency':
+                settingsModalContent = 'currency';
+                break;
+            case 'hours':
+                settingsModalContent = 'hours';
+                break;
+        }
     }
     
-    cartTotal = cartItems.reduce((total, item) => total + (item.item.price * item.quantity), 0);
-    cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  }
+    function closeSettingsModal() {
+        showSettingsModal = false;
+        settingsModalTitle = "";
+        settingsModalContent = "";
+        currentSetting = "";
+    }
+    
+    function updateProfile() {
+        console.log("Profile updated:", profileInfo);
+        closeSettingsModal();
+    }
+    
+    function updateSecurity() {
+        console.log("Security settings updated:", securitySettings);
+        closeSettingsModal();
+    }
+    
+    function updateNotifications() {
+        console.log("Notification preferences updated:", notificationPrefs);
+        closeSettingsModal();
+    }
+    
+    function updateStoreInfo() {
+        console.log("Store information updated:", storeInfo);
+        closeSettingsModal();
+    }
+    
+    function updatePaymentMethods() {
+        console.log("Payment methods updated:", paymentMethods);
+        closeSettingsModal();
+    }
+    
+    function updateShippingOptions() {
+        console.log("Shipping options updated:", shippingOptions);
+        closeSettingsModal();
+    }
+    
+    function updateTaxConfig() {
+        console.log("Tax configuration updated:", taxConfig);
+        closeSettingsModal();
+    }
+    
+    function updateCurrency() {
+        console.log("Currency settings updated:", currencySettings);
+        closeSettingsModal();
+    }
+    
+    function updateBusinessHours() {
+        console.log("Business hours updated:", businessHours);
+        closeSettingsModal();
+    }
+    
+    function addPaymentMethod() {
+        paymentMethods = [...paymentMethods, {
+            id: paymentMethods.length + 1,
+            type: "New Method",
+            lastFour: "0000",
+            isDefault: false
+        }];
+    }
+    
+    function removePaymentMethod(id: number) {
+        paymentMethods = paymentMethods.filter(method => method.id !== id);
+    }
+    
+    function setDefaultPaymentMethod(id: number) {
+        paymentMethods = paymentMethods.map(method => ({
+            ...method,
+            isDefault: method.id === id
+        }));
+    }
 
-  // ========== AUTH FUNCTIONS ==========
-function handleSubmit(e: Event) {
-    e.preventDefault();
-    
-    const loginUsername = document.getElementById('login-username') as HTMLInputElement;
-    const loginPassword = document.getElementById('login-password') as HTMLInputElement;
-    
-    if (loginUsername && loginPassword) {
-        if (loginUsername.value.trim() && loginPassword.value.trim()) {
-            currentUser = loginUsername.value;
+    // ========== FEEDBACK DATA ==========
+    let userFeedbacks: Array<{
+        customer: string;
+        product: string;
+        rating: number;
+        comment: string;
+        date: string;
+    }> = [];
+
+    let newFeedback = {
+        customer: '',
+        product: '',
+        rating: 0,
+        comment: ''
+    };
+
+    function addNewFeedback() {
+        if (!newFeedback.customer || !newFeedback.product || !newFeedback.comment || newFeedback.rating === 0) {
+            alert('Please fill in all fields and select a rating');
+            return;
+        }
+
+        const feedback = {
+            customer: newFeedback.customer,
+            product: newFeedback.product,
+            rating: newFeedback.rating,
+            comment: newFeedback.comment,
+            date: new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            })
+        };
+
+        userFeedbacks = [feedback, ...userFeedbacks];
+        
+        // Update feedback data metrics
+        feedbackData.totalReviews = userFeedbacks.length;
+        feedbackData.positiveReviews = userFeedbacks.filter(fb => fb.rating >= 4).length;
+        feedbackData.averageRating = userFeedbacks.length > 0 
+            ? userFeedbacks.reduce((sum, fb) => sum + fb.rating, 0) / userFeedbacks.length
+            : 0;
+
+        // Reset form
+        newFeedback = {
+            customer: '',
+            product: '',
+            rating: 0,
+            comment: ''
+        };
+
+        alert('Thank you for your feedback!');
+    }
+
+    // ========== CHART FUNCTIONS ==========
+    function initializeCharts() {
+        // Destroy existing charts first
+        if (salesChart) {
+            salesChart.destroy();
+            salesChart = null;
+        }
+        if (categoryChart) {
+            categoryChart.destroy();
+            categoryChart = null;
+        }
+
+        // ==== Sales Analytics Chart ====
+        const ctx1 = document.getElementById("salesChart") as HTMLCanvasElement;
+        if (ctx1) {
+            const gradient = ctx1.getContext('2d')?.createLinearGradient(0, 0, 0, 300);
+            if (gradient) {
+                gradient.addColorStop(0, "rgba(59,130,246,0.15)");
+                gradient.addColorStop(1, "rgba(59,130,246,0)");
+            }
+
+            salesChart = new (window as any).Chart(ctx1, {
+                type: "line",
+                data: {
+                    labels: salesLabels,
+                    datasets: [
+                        {
+                            label: "Sales",
+                            data: salesValues,
+                            borderColor: "#3b82f6",
+                            borderWidth: 4,
+                            fill: true,
+                            tension: 0.4,
+                            backgroundColor: gradient || "rgba(59,130,246,0.1)",
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
+                        y: { 
+                            grid: { color: "#f3f4f6" }, 
+                            ticks: { color: "#9ca3af" },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==== Category Bar Chart ====
+        const ctx2 = document.getElementById("categoryChart") as HTMLCanvasElement;
+        if (ctx2) {
+            categoryChart = new (window as any).Chart(ctx2, {
+                type: "bar",
+                data: {
+                    labels: categoryLabels,
+                    datasets: [
+                        {
+                            label: "Categories",
+                            data: categoryValues,
+                            backgroundColor: ["#8b5cf6", "#a78bfa", "#c4b5fd"],
+                            borderRadius: 6,
+                            barThickness: 40,
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    responsive: true,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
+                        y: { 
+                            grid: { color: "#f3f4f6" }, 
+                            ticks: { color: "#9ca3af" },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        chartsInitialized = true;
+    }
+
+    // ========== LIFECYCLE ==========
+    onMount(() => {
+        const savedLoginState = localStorage.getItem('isLoggedIn');
+        const savedUser = localStorage.getItem('currentUser');
+        
+        if (savedLoginState === 'true' && savedUser) {
             isLoggedIn = true;
+            currentUser = savedUser;
             showModal = false;
             
-            // AUTO-REDIRECT TO PRODUCTS SECTION AFTER LOGIN
+            // AUTO-REDIRECT TO PRODUCTS SECTION IF ALREADY LOGGED IN
             activeSection = "products";
             showSubmenu = true;
             
-            // Initialize categories for products section
+            // Initialize categories
             if (typeof categories !== 'undefined' && categories.length > 0) {
                 selectedMainCategory = categories[0]; 
                 if (categories[0].genders.length > 0) {
@@ -1310,514 +1967,43 @@ function handleSubmit(e: Event) {
                     activeSubmenu = "Clothing";
                 }
             }
-            
-            localStorage.setItem('currentUser', currentUser);
-            localStorage.setItem('isLoggedIn', 'true');
-            
-            const authForm = document.getElementById('auth-form') as HTMLFormElement;
-            if (authForm) {
-                authForm.reset();
-            }
-        }
-    }
-}
-
-  function handleUsernameInput(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (input.value.length >= 6) {
-      input.value = input.value.slice(0, 6);
-    }
-  }
-
-  function logout() {
-    isLoggedIn = false;
-    currentUser = '';
-    showModal = false;
-    
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('isLoggedIn');
-    
-    cartItems = [];
-    try {
-      cart.set([]);
-    } catch (error) {
-      console.warn('Could not clear cart store');
-    }
-  }
-
-  function handleOverlayClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).id === 'modal-overlay') {
-      showModal = false;
-    }
-  }
-
-  // ========== PRODUCTS AND CART FUNCTIONS ==========
-  function isSubitemInCart(subitem: SubItem): boolean {
-    try {
-      return cartItems.some(c => c.item.id === subitem.id);
-    } catch (error) {
-      console.error('Error checking cart:', error);
-      return false;
-    }
-  }
-
-  function toggleSubitemInCart(subitem: SubItem) {
-    const existingIndex = cartItems.findIndex(c => c.item.id === subitem.id);
-    
-    if (existingIndex > -1) {
-      cartItems = cartItems.filter(c => c.item.id !== subitem.id);
-    } else {
-      cartItems = [...cartItems, { 
-        item: subitem, 
-        quantity: 1 
-      }];
-    }
-    
-    try {
-      cart.set(cartItems);
-    } catch (error) {
-      console.warn('Could not update cart store, using local state only');
-    }
-  }
-
-  function increaseQuantity(itemId: number) {
-    cartItems = cartItems.map(c =>
-      c.item.id === itemId ? { ...c, quantity: c.quantity + 1 } : c
-    );
-    
-    try {
-      cart.set(cartItems);
-    } catch (error) {
-      console.warn('Could not update cart store, using local state only');
-    }
-  }
-
-  function decreaseQuantity(itemId: number) {
-    const itemIndex = cartItems.findIndex(c => c.item.id === itemId);
-    
-    if (itemIndex > -1) {
-        const currentItem = cartItems[itemIndex];
-        
-        if (currentItem.quantity > 1) {
-            cartItems[itemIndex] = {
-                ...currentItem,
-                quantity: currentItem.quantity - 1
-            };
         } else {
-            cartItems.splice(itemIndex, 1);
+            isLoggedIn = false;
+            currentUser = '';
+            showModal = false;
+            activeSection = "dashboard"; // Stay on dashboard if not logged in
         }
-        cartItems = [...cartItems];
-    }
-  }
-
-  function removeFromCart(itemId: number) {
-    cartItems = cartItems.filter(c => c.item.id !== itemId);
-    
-    try {
-      cart.set(cartItems);
-    } catch (error) {
-      console.warn('Could not update cart store, using local state only');
-    }
-  }
-
-  // ========== NAVIGATION FUNCTIONS ==========
-function setSection(section: typeof activeSection) {
-    // Check if user is logged in before allowing access to products
-    if (section === "products" && !isLoggedIn) {
-        showModal = true; // Show login modal if not logged in
-        return; // Don't change section
-    }
-    
-    if (section === "products" && activeSection === "products") {
-        showSubmenu = false;
-        hoveredNav = "";
-    } else {
-        activeSection = section;
-        showSubmenu = section === "products";
-        if (section !== "products") activeSubmenu = null;
-    }
-}
-
-  function selectMainCategory(category: MainCategory) {
-    selectedMainCategory = category;
-    selectedGender = category.genders[0];
-    selectedGenderIndex = 0;
-    selectedKidsCategory = null;
-    selectedProduct = null;
-    selectedProductName = null;
-  }
-
-  function selectGender(index: number) {
-    if (!selectedMainCategory || selectedMainCategory.genders.length <= index) return;
-
-    selectedGenderIndex = index;
-    selectedGender = selectedMainCategory.genders[index];
-    selectedKidsCategory = null;
-    selectedProduct = null;
-    selectedProductName = null;
-  }
-
-  function selectKidsCategory(categoryName: string) {
-    selectedKidsCategory = categoryName;
-    selectedProduct = null;
-    selectedProductName = null;
-  }
-
-  function selectProduct(product: Product) {
-    selectedProduct = product;
-    selectedProductName = product.name;
-  }
-
-  function goBack() {
-    selectedProduct = null;
-    selectedProductName = null;
-  }
-
-  function selectSubitem(subitem: SubItem) {
-    selectedSubitem = subitem;
-    quantity = 1;
-  }
-
-  // ========== CHECKOUT FUNCTIONS ==========
-  function openCheckout() {
-    if (cartItems.length === 0) {
-      alert('Your cart is empty!');
-      return;
-    }
-    showCheckoutModal = true;
-    paymentMethod = null;
-    cashAmount = 0;
-    changeAmount = 0;
-  }
-
-  function closeCheckoutModal() {
-    showCheckoutModal = false;
-    paymentMethod = null;
-    cashAmount = 0;
-    changeAmount = 0;
-  }
-
-  function selectPaymentMethod(method: "card" | "cash") {
-    paymentMethod = method;
-    if (method === "cash") {
-      cashAmount = Math.ceil(cartTotal * 1.08); 
-      calculateChange();
-    }
-  }
-
-  function calculateChange() {
-    changeAmount = Math.max(0, cashAmount - (cartTotal * 1.08));
-  }
-
-  function processPayment() {
-    if (!paymentMethod) {
-      alert('Please select a payment method');
-      return;
-    }
-
-    if (paymentMethod === "cash" && cashAmount < (cartTotal * 1.08)) {
-      alert('Cash amount is insufficient');
-      return;
-    }
-
-    transactionDetails = {
-      id: 'TXN-' + Date.now(),
-      date: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }),
-      time: new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      }),
-      items: cartItems,
-      subtotal: cartTotal,
-      tax: cartTotal * 0.03,
-      total: cartTotal * 1.08,
-      paymentMethod: paymentMethod,
-      cashAmount: paymentMethod === 'cash' ? cashAmount : null,
-      change: paymentMethod === 'cash' ? changeAmount : null
-    };
-
-    updateDataAfterCheckout(cartTotal, cartItems.length);
-
-    showCheckoutModal = false;
-    showSuccessModal = true;
-  }
-
-  function updateDataAfterCheckout(totalAmount: number, itemsCount: number) {
-    dashboardData.todaySales = totalAmount;
-    dashboardData.pendingOrders = Math.max(1, Math.floor(itemsCount * 0.3));
-    dashboardData.newCustomers = Math.max(1, Math.floor(itemsCount * 0.2));
-    dashboardData.conversionRate = Math.min(5, Math.max(1, itemsCount * 0.8));
-
-    reportData.totalSales = totalAmount;
-    reportData.totalOrders = itemsCount;
-    reportData.productStatistic = Math.max(100, itemsCount * 15);
-    reportData.visitor = Math.max(50, Math.floor(itemsCount * 8));
-    reportData.totalSoldProducts = itemsCount;
-
-    transactionData.totalAmount = totalAmount;
-    transactionData.completedAmount = Math.floor(totalAmount * 0.78);
-    transactionData.pendingAmount = Math.floor(totalAmount * 0.22);
-
-    feedbackData.totalReviews = Math.max(5, Math.floor(itemsCount * 12));
-    feedbackData.positiveReviews = Math.floor(feedbackData.totalReviews * 0.83);
-    feedbackData.averageRating = 4.5;
-  }
-
-  function printReceipt() {
-    const receiptContent = document.querySelector('.success-modal-content');
-    if (receiptContent) {
-      const printWindow = window.open('', '_blank');
-      printWindow?.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Receipt - Aegix</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              max-width: 300px; 
-              margin: 20px; 
-              line-height: 1.4;
-            }
-            .header { text-align: center; margin-bottom: 20px; }
-            .divider { border-top: 1px dashed #000; margin: 15px 0; }
-            .item { display: flex; justify-content: space-between; margin: 5px 0; }
-            .total { font-weight: bold; margin-top: 10px; }
-            .footer { text-align: center; margin-top: 20px; font-size: 0.9em; }
-          </style>
-        </head>
-        <body>
-          ${receiptContent.innerHTML}
-        </body>
-        </html>
-      `);
-      printWindow?.document.close();
-      printWindow?.print();
-    }
-  }
-
-  function startNewSale() {
-    cartItems = [];
-    try {
-      cart.set([]);
-    } catch (error) {
-      console.warn('Could not clear cart store');
-    }
-    
-    showSuccessModal = false;
-    transactionDetails = null;
-  }
-
-  // ========== SETTINGS FUNCTIONS ==========
-  function openSettingsModal(setting: string, title: string) {
-    currentSetting = setting;
-    settingsModalTitle = title;
-    showSettingsModal = true;
-    
-    switch(setting) {
-      case 'profile':
-        settingsModalContent = 'profile';
-        break;
-      case 'security':
-        settingsModalContent = 'security';
-        break;
-      case 'notifications':
-        settingsModalContent = 'notifications';
-        break;
-      case 'store-info':
-        settingsModalContent = 'store-info';
-        break;
-      case 'payments':
-        settingsModalContent = 'payments';
-        break;
-      case 'shipping':
-        settingsModalContent = 'shipping';
-        break;
-      case 'tax':
-        settingsModalContent = 'tax';
-        break;
-      case 'currency':
-        settingsModalContent = 'currency';
-        break;
-      case 'hours':
-        settingsModalContent = 'hours';
-        break;
-    }
-  }
-  
-  function closeSettingsModal() {
-    showSettingsModal = false;
-    settingsModalTitle = "";
-    settingsModalContent = "";
-    currentSetting = "";
-  }
-  
-  function updateProfile() {
-    console.log("Profile updated:", profileInfo);
-    closeSettingsModal();
-  }
-  
-  function updateSecurity() {
-    console.log("Security settings updated:", securitySettings);
-    closeSettingsModal();
-  }
-  
-  function updateNotifications() {
-    console.log("Notification preferences updated:", notificationPrefs);
-    closeSettingsModal();
-  }
-  
-  function updateStoreInfo() {
-    console.log("Store information updated:", storeInfo);
-    closeSettingsModal();
-  }
-  
-  function updatePaymentMethods() {
-    console.log("Payment methods updated:", paymentMethods);
-    closeSettingsModal();
-  }
-  
-  function updateShippingOptions() {
-    console.log("Shipping options updated:", shippingOptions);
-    closeSettingsModal();
-  }
-  
-  function updateTaxConfig() {
-    console.log("Tax configuration updated:", taxConfig);
-    closeSettingsModal();
-  }
-  
-  function updateCurrency() {
-    console.log("Currency settings updated:", currencySettings);
-    closeSettingsModal();
-  }
-  
-  function updateBusinessHours() {
-    console.log("Business hours updated:", businessHours);
-    closeSettingsModal();
-  }
-  
-  function addPaymentMethod() {
-    paymentMethods = [...paymentMethods, {
-      id: paymentMethods.length + 1,
-      type: "New Method",
-      lastFour: "0000",
-      isDefault: false
-    }];
-  }
-  
-  function removePaymentMethod(id: number) {
-    paymentMethods = paymentMethods.filter(method => method.id !== id);
-  }
-  
-  function setDefaultPaymentMethod(id: number) {
-    paymentMethods = paymentMethods.map(method => ({
-      ...method,
-      isDefault: method.id === id
-    }));
-  }
-
-  // ========== FEEDBACK DATA ==========
-  let userFeedbacks: Array<{
-    customer: string;
-    product: string;
-    rating: number;
-    comment: string;
-    date: string;
-  }> = [];
-
-  let newFeedback = {
-    customer: '',
-    product: '',
-    rating: 0,
-    comment: ''
-  };
-
-  function addNewFeedback() {
-    if (!newFeedback.customer || !newFeedback.product || !newFeedback.comment || newFeedback.rating === 0) {
-      alert('Please fill in all fields and select a rating');
-      return;
-    }
-
-    const feedback = {
-      customer: newFeedback.customer,
-      product: newFeedback.product,
-      rating: newFeedback.rating,
-      comment: newFeedback.comment,
-      date: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    };
-
-    userFeedbacks = [feedback, ...userFeedbacks];
-    
-    // Update feedback data metrics
-    feedbackData.totalReviews = userFeedbacks.length;
-    feedbackData.positiveReviews = userFeedbacks.filter(fb => fb.rating >= 4).length;
-    feedbackData.averageRating = userFeedbacks.length > 0 
-      ? userFeedbacks.reduce((sum, fb) => sum + fb.rating, 0) / userFeedbacks.length
-      : 0;
-
-    // Reset form
-    newFeedback = {
-      customer: '',
-      product: '',
-      rating: 0,
-      comment: ''
-    };
-
-    alert('Thank you for your feedback!');
-  }
-
-  // ========== LIFECYCLE ==========
-onMount(() => {
-    const savedLoginState = localStorage.getItem('isLoggedIn');
-    const savedUser = localStorage.getItem('currentUser');
-    
-    if (savedLoginState === 'true' && savedUser) {
-        isLoggedIn = true;
-        currentUser = savedUser;
-        showModal = false;
         
-        // AUTO-REDIRECT TO PRODUCTS SECTION IF ALREADY LOGGED IN
-        activeSection = "products";
-        showSubmenu = true;
-        
-        // Initialize categories
-        if (typeof categories !== 'undefined' && categories.length > 0) {
-            selectedMainCategory = categories[0]; 
-            if (categories[0].genders.length > 0) {
-                selectedGender = categories[0].genders[0]; 
-                selectedGenderIndex = 0;
-                activeSubmenu = "Clothing";
+        try {
+            const storeCart = get(cart);
+            if (Array.isArray(storeCart)) {
+                cartItems = storeCart;
             }
+        } catch (error) {
+            console.warn('Cart store not available on mount');
         }
-    } else {
-        isLoggedIn = false;
-        currentUser = '';
-        showModal = false;
-        activeSection = "dashboard"; // Stay on dashboard if not logged in
-    }
-    
-    try {
-        const storeCart = get(cart);
-        if (Array.isArray(storeCart)) {
-            cartItems = storeCart;
+        
+        // Load Chart.js dynamically to avoid import issues
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => {
+            setTimeout(() => {
+                initializeCharts();
+            }, 500);
+        };
+        document.head.appendChild(script);
+        
+        document.title = "Aegix";
+    });
+
+    afterUpdate(() => {
+        // Re-initialize charts when dashboard becomes active
+        if (activeSection === "dashboard" && !chartsInitialized) {
+            setTimeout(() => {
+                initializeCharts();
+            }, 100);
         }
-    } catch (error) {
-        console.warn('Cart store not available on mount');
-    }
-    
-    document.title = "Aegix";
-});
+    });
 </script>
 
 <div class="main-background">
@@ -1875,7 +2061,7 @@ onMount(() => {
                 <div class="modal-overlay" id="modal-overlay" role="button" tabindex="0" aria-label="Close login modal" on:click={handleOverlayClick} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showModal = false } }}>
                     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" tabindex="-1">
                         <div class="modal-header">
-                            <h2 id="login-modal-title">Log In</h2>
+                            <h2 id="login-modal-title">Welcome Back</h2>
                             <button class="close-btn" on:click={() => showModal = false}>×</button>
                         </div>
                         
@@ -1924,129 +2110,151 @@ onMount(() => {
             {activeSection === 'help' ? 'main-content5' : ''}">
 
             {#if activeSection === "dashboard"}
-                <div class="dashboard-container">
-                    <!-- Sales Overview -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">💰</div>
-                            <div class="stat-info">
-                                <h3>Today's Sales</h3>
-                                <p class="stat-value">₱{dashboardData.todaySales.toLocaleString()}</p>
-                                <span class="stat-change {dashboardData.todaySales > 0 ? 'positive' : ''}">
-                                    {dashboardData.todaySales > 0 ? '+12%' : 'No sales yet'}
-                                </span>
-                            </div>
-                        </div>
-                    
-                        <div class="stat-card">
-                            <div class="stat-icon">📦</div>
-                            <div class="stat-info">
-                                <h3>Pending Orders</h3>
-                                <p class="stat-value">{dashboardData.pendingOrders}</p>
-                                <span class="stat-change {dashboardData.pendingOrders > 0 ? '' : 'positive'}">
-                                    {dashboardData.pendingOrders > 0 ? 'Need Attention' : 'All clear'}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon">👥</div>
-                            <div class="stat-info">
-                                <h3>New Customers</h3>
-                                <p class="stat-value">{dashboardData.newCustomers}</p>
-                                <span class="stat-change {dashboardData.newCustomers > 0 ? 'positive' : ''}">
-                                    {dashboardData.newCustomers > 0 ? '+5%' : 'No new customers'}
-                                </span>
-                            </div>
-                        </div>
-                    
-                        <div class="stat-card">
-                            <div class="stat-icon">📊</div>
-                            <div class="stat-info">
-                                <h3>Conversion Rate</h3>
-                                <p class="stat-value">{dashboardData.conversionRate.toFixed(1)}%</p>
-                                <span class="stat-change {dashboardData.conversionRate > 0 ? 'positive' : ''}">
-                                    {dashboardData.conversionRate > 0 ? '+0.4%' : 'No activity'}
-                                </span>
-                            </div>
-                        </div>
+    <div class="space-y-6 pb-10">
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Dashboard</h2>
+        <p class="text-gray-500 text-sm">
+            {#if isLoggedIn && currentUser}
+                Welcome back, <span class="font-semibold text-blue-600">{currentUser}</span>
+            {:else}
+                Welcome to your dashboard
+            {/if}
+        </p>
+    </div>
+
+    {#if !isLoggedIn}
+        <button
+            on:click={() => showModal = true}
+            class="flex items-center gap-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg hover:shadow-blue-500/50 transition-all hover:-translate-y-0.5"
+        >
+            Register
+        </button>
+    {:else}
+        <button
+            on:click={() => setSection('products')}
+            class="flex items-center gap-2 bg-linear-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg hover:shadow-green-500/50 transition-all hover:-translate-y-0.5"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Add Product
+        </button>
+    {/if}
+</div>
+
+        <!-- STAT CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- CARD 1 -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-md">
+                        ₱
                     </div>
+                    <span class="text-xs px-2 py-1 font-bold bg-green-100 text-green-700 rounded-full">
+                        {dashboardData.todaySales > 0 ? '+12.5%' : '0%'}
+                    </span>
+                </div>
+                <h3 class="text-gray-500 text-sm font-medium">Today's Sales</h3>
+                <p class="text-2xl font-bold text-gray-800">
+                    {dashboardData.todaySales > 0 ? `₱${dashboardData.todaySales.toLocaleString()}` : '₱0'}
+                </p>
+            </div>
 
-                    <!-- Charts Section -->
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <h3>Sales Trend (Last 7 Days)</h3>
-                            <div class="chart-placeholder">
-                                {#if dashboardData.todaySales > 0}
-                                    📈 Sales: ₱{dashboardData.todaySales.toLocaleString()}
-                                {:else}
-                                    📈 No data available
-                                {/if}
-                            </div>
-                        </div>
-                    
-                        <div class="chart-card">
-                            <h3>Top Categories</h3>
-                            <div class="chart-placeholder">
-                                {#if dashboardData.todaySales > 0}
-                                    🍩 Active Categories
-                                {:else}
-                                    🍩 No data available
-                                {/if}
-                            </div>
-                        </div>
+            <!-- CARD 2 -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white shadow-md">
+                        📦
                     </div>
+                    <span class="text-xs px-2 py-1 font-bold bg-red-100 text-red-700 rounded-full">
+                        {dashboardData.pendingOrders > 0 ? '-2.4%' : '0%'}
+                    </span>
+                </div>
+                <h3 class="text-gray-500 text-sm font-medium">Pending Orders</h3>
+                <p class="text-2xl font-bold text-gray-800">
+                    {dashboardData.pendingOrders > 0 ? dashboardData.pendingOrders : '0'}
+                </p>
+            </div>
 
-                    <!-- Recent Activity -->
-                    <div class="activity-card">
-                        <h3>Recent Activity</h3>
-                        <div class="activity-list">
-                            {#if dashboardData.todaySales > 0}
-                                <div class="activity-item">
-                                    <span class="activity-icon">🛒</span>
-                                    <div class="activity-details">
-                                        <p>New sale completed - ₱{dashboardData.todaySales.toLocaleString()}</p>
-                                        <small>Just now</small>
-                                    </div>
-                                    <span class="activity-amount">₱{dashboardData.todaySales.toLocaleString()}</span>
-                                </div>
-
-                                <div class="activity-item">
-                                    <span class="activity-icon">👤</span>
-                                    <div class="activity-details">
-                                        <p>{dashboardData.newCustomers} new customer(s) registered</p>
-                                        <small>Today</small>
-                                    </div>
-                                </div>
-                            {:else}
-                                <div class="activity-item">
-                                    <span class="activity-icon">ℹ️</span>
-                                    <div class="activity-details">
-                                        <p>No recent activity</p>
-                                        <small>Start making sales to see activity</small>
-                                    </div>
-                                </div>
-                            {/if}
-                        </div>
+            <!-- CARD 3 -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md">
+                        👥
                     </div>
+                    <span class="text-xs px-2 py-1 font-bold bg-green-100 text-green-700 rounded-full">
+                        {dashboardData.newCustomers > 0 ? '+8.2%' : '0%'}
+                    </span>
+                </div>
+                <h3 class="text-gray-500 text-sm font-medium">New Customers</h3>
+                <p class="text-2xl font-bold text-gray-800">
+                    {dashboardData.newCustomers > 0 ? dashboardData.newCustomers.toLocaleString() : '0'}
+                </p>
+            </div>
 
-                    <!-- Quick Actions -->
-                    <div class="quick-actions">
-                        <h3>Quick Actions</h3>
-                        <div class="action-buttons">
-                            <button class="action-btn" on:click={() => setSection('products')}>
-                                <span>➕</span>
-                                Add Product
-                            </button>
+            <!-- CARD 4 -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md">
+                        📈
+                    </div>
+                    <span class="text-xs px-2 py-1 font-bold bg-green-100 text-green-700 rounded-full">
+                        {dashboardData.conversionRate > 0 ? '+1.2%' : '0%'}
+                    </span>
+                </div>
+                <h3 class="text-gray-500 text-sm font-medium">Conversion Rate</h3>
+                <p class="text-1xl font-bold text-gray-800">
+                    {dashboardData.conversionRate > 0 ? `${dashboardData.conversionRate}%` : '0%'}
+                </p>
+            </div>
+        </div>
 
-                            <button class="action-btn" on:click={() => setSection('report')}>
-                                <span>📊</span>
-                                View Reports
-                            </button>
+        <!-- CHARTS -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- SALES CHART -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-800">Sales Analytics</h3>
+                    <select class="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1 text-gray-600">
+                        <option>This Week</option>
+                        <option>Last Week</option>
+                        <option>This Month</option>
+                    </select>
+                </div>
+                <canvas id="salesChart" class="h-64"></canvas>
+            </div>
+
+            <!-- CATEGORY CHART -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-6">Top Categories</h3>
+                <canvas id="categoryChart" class="h-40"></canvas>
+
+                <div class="mt-6 space-y-3">
+                    <div class="flex justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-purple-500"></span> Clothing
                         </div>
+                        <span class="font-bold">{categoryValues[0] > 0 ? `${categoryValues[0]}%` : '0%'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-purple-400"></span> Footwear
+                        </div>
+                        <span class="font-bold">{categoryValues[1] > 0 ? `${categoryValues[1]}%` : '0%'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-purple-300"></span> Accessories
+                        </div>
+                        <span class="font-bold">{categoryValues[2] > 0 ? `${categoryValues[2]}%` : '0%'}</span>
                     </div>
                 </div>
-            {/if}
+            </div>
+        </div>
+    </div>
+{/if}
 
             {#if activeSection === "report"}
                 <section class="analytics-dashboard">
@@ -2072,30 +2280,6 @@ onMount(() => {
                             </div>
                             <p class="value2">{reportData.totalOrders.toLocaleString()}</p>
                             <p class="desc2">Orders vs last month</p>
-                        </div>
-
-                        <div class="card card5">
-                            <div class="card-header5">
-                                <h2>Product Statistic</h2>
-                                <span class="muted5">Today</span>
-                            </div>
-                            <div class="stat-body">
-                                <p class="value5">{reportData.productStatistic.toLocaleString()}</p>
-                                <p class="{reportData.productStatistic > 0 ? 'positive5' : 'muted5'}">
-                                    {reportData.productStatistic > 0 ? '+5.34%' : 'No activity'}
-                                </p>
-                                <ul>
-                                    <li><span>💡 Electronic</span><span class="{reportData.productStatistic > 0 ? 'positive6' : 'muted5'}">
-                                    {reportData.productStatistic > 0 ? '+1.8%' : '0%'}
-                                    </span></li>
-                                    <li><span>🎮 Games</span><span class="{reportData.productStatistic > 0 ? 'positive7' : 'muted5'}">
-                                    {reportData.productStatistic > 0 ? '+2.3%' : '0%'}
-                                    </span></li>
-                                    <li><span>🪑 Furniture</span><span class="{reportData.productStatistic > 0 ? 'negative5' : 'muted5'}">
-                                    {reportData.productStatistic > 0 ? '-1.04%' : '0%'}
-                                    </span></li>
-                                </ul>
-                            </div>
                         </div>
 
                         <div class="card card3">
@@ -2134,26 +2318,6 @@ onMount(() => {
                                     📊 No data available
                                 {/if}
                             </div>
-                        </div>
-
-                        <div class="card card7">
-                            <div class="card-header7">
-                                <h2>Customer Growth</h2>
-                                <span class="muted7">Today</span>
-                            </div>
-                            <ul class="growth-list7">
-                                {#if reportData.totalSales > 0}
-                                    <li><span>🇺🇸 United States</span><span>{Math.floor(reportData.visitor * 0.4)}</span></li>
-                                    <li><span>🇩🇪 Germany</span><span>{Math.floor(reportData.visitor * 0.3)}</span></li>
-                                    <li><span>🇦🇺 Australia</span><span>{Math.floor(reportData.visitor * 0.2)}</span></li>
-                                    <li><span>🇫🇷 France</span><span>{Math.floor(reportData.visitor * 0.1)}</span></li>
-                                {:else}
-                                    <li><span>🇺🇸 United States</span><span>0</span></li>
-                                    <li><span>🇩🇪 Germany</span><span>0</span></li>
-                                    <li><span>🇦🇺 Australia</span><span>0</span></li>
-                                    <li><span>🇫🇷 France</span><span>0</span></li>
-                                {/if}
-                            </ul>
                         </div>
                     </div>
                 </section>
@@ -2843,55 +3007,59 @@ onMount(() => {
         </div>
 
         <div class="right-sidebar-content">
-            {#if cartItems.length > 0}
-                <div class="cart-items-list">
-                    {#each cartItems as cartItem (cartItem.item.id)}
-                        <div class="cart-item">
-                            <img src={cartItem.item.image} alt={cartItem.item.name} class="cart-item-img" />
+    {#if cartItems.length > 0}
+        <div class="cart-items-list">
+            {#each cartItems as cartItem (cartItem.item.id)}
+                <div class="cart-item">
+                    <img src={cartItem.item.image} alt={cartItem.item.name} class="cart-item-img" />
 
-                            <div class="cart-item-details">
-                                <div class="cart-top">
-                                    <div class="cart-item-name">{cartItem.item.name}</div>
-                                    <div class="cart-item-price">₱{cartItem.item.price.toLocaleString()} × {cartItem.quantity}</div>
-                                </div>
-
-                                <div class="cart-bottom">
-                                    <div class="cart-item-quantity">
-                                        <button class="quantity-btn" on:click={() => decreaseQuantity(cartItem.item.id)}>
-                                            <i class="bx bx-minus"></i>
-                                        </button>
-                                        <span class="quantity-number">{cartItem.quantity}</span>
-                                        <button class="quantity-btn" on:click={() => increaseQuantity(cartItem.item.id)}>
-                                            <i class="bx bx-plus"></i>
-                                        </button>
-                                    </div>
-                                    <button class="remove-btn" on:click={() => removeFromCart(cartItem.item.id)}>
-                                        <i class="bx bx-trash"></i>
-                                    </button>
-                                </div>
+                    <div class="cart-item-details">
+                        <div class="cart-top">
+                            <div class="cart-item-name">{cartItem.item.name}</div>
+                            <div class="cart-item-price">
+                                ₱{cartItem.item.price.toLocaleString()} × {cartItem.quantity}
                             </div>
                         </div>
-                    {/each}
-                </div>
 
-                <div class="cart-summary">
-                    <h4>Order Summary</h4>
-                    <p>Total Items: {cartItemCount}</p>
-                    <p class="cart-total">Total: ₱{cartTotal.toLocaleString()}</p>
-                </div>
+                        <div class="cart-bottom">
+                            <div class="cart-item-quantity">
+                                <button class="quantity-btn" on:click={() => decreaseQuantity(cartItem.item.id)}>
+                                    <i class="bx bx-minus"></i>
+                                </button>
 
-                <div class="cart-actions">
-                    <button class="checkout-btn" on:click={openCheckout}>
-                        Checkout Now
-                    </button>
+                                <button class="quantity-btn" on:click={() => increaseQuantity(cartItem.item.id)}>
+                                    <i class="bx bx-plus"></i>
+                                </button>
+
+                                <button class="remove-btn" on:click={() => removeFromCart(cartItem.item.id)}>
+                                    <i class="bx bx-trash"></i>
+                                </button>
+                            </div> <!-- ✅ MISSING CLOSING DIV DITO -->
+                        </div>
+                    </div>
                 </div>
-            {:else}
-                <div class="empty-sidebar">
-                    <p>Your cart is empty</p>
-                    <small>Select a product and subitem to add to cart</small>
-                </div>
-            {/if}
+            {/each}
         </div>
+
+        <div class="cart-summary">
+            <h4>Order Summary</h4>
+            <p>Total Items: {cartItemCount}</p>
+            <p class="cart-total">Total: ₱{cartTotal.toLocaleString()}</p>
+        </div>
+
+        <div class="cart-actions">
+            <button class="checkout-btn" on:click={openCheckout}>
+                Checkout Now
+            </button>
+        </div>
+    {:else}
+        <div class="empty-sidebar">
+            <p>Your cart is empty</p>
+            <small>Select a product and subitem to add to cart</small>
+        </div>
+    {/if}
+</div>
+
     </div>
 {/if}
 
@@ -3213,7 +3381,7 @@ onMount(() => {
     }
 
     .register-section {
-        margin-top: 20px;
+        margin-top: 70px;
         padding: 15px 20px;
         width: 100%;
         display: flex;
@@ -3263,146 +3431,184 @@ onMount(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2000;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
     background: white;
     border-radius: 16px;
-    width: 900px; /* Binawasan ang lapad mula sa 100px */
-    max-width: 90vw; /* Para hindi lumampas sa screen sa mobile */
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-    animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 420px;
+    animation: slideUp 0.3s ease-out;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-40px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
 }
 
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px 28px 20px;
-    border-bottom: 1px solid #f0f0f0;
-    background: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px;
+    position: relative;
 }
 
 .modal-header h2 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
-    color: #1a1a1a;
-    letter-spacing: -0.5px;
+    text-align: center;
 }
 
 .close-btn {
-    background: #f8fafc;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: #64748b;
-    padding: 6px;
+    color: white;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    transition: all 0.3s ease;
-    width: 36px;
-    height: 36px;
+    font-size: 1.2rem;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-    background: #3B5AFE;
-    color: white;
-    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
 
 .container {
-    padding: 28px;
+    padding: 32px;
+}
+
+.form-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 .input-group {
-    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .input-wrapper {
     position: relative;
-    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
 }
 
-.icon {
+.input-wrapper .icon {
     position: absolute;
     left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #64748b;
-    font-size: 18px;
-    transition: color 0.3s ease;
+    color: #667eea;
+    font-size: 1.2rem;
+    z-index: 1;
 }
 
-input {
+.input-wrapper input {
     width: 100%;
     padding: 14px 16px 14px 48px;
     border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 15px;
-    box-sizing: border-box;
-    outline: none;
+    border-radius: 12px;
+    font-size: 1rem;
     transition: all 0.3s ease;
-    background: #ffffff;
-    font-weight: 400;
-    color: #1a1a1a;
+    background: #f8fafc;
+    outline: none;
 }
 
-input:focus {
-    border-color: #3B5AFE;
-    box-shadow: 0 0 0 3px rgba(59, 90, 254, 0.1);
-    background: #ffffff;
+.input-wrapper input:focus {
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
 }
 
-input::placeholder {
+.input-wrapper input::placeholder {
     color: #94a3b8;
-    font-weight: 400;
 }
 
 .submit-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #3B5AFE 0%, #2E47E6 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 15px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
-    text-transform: none;
-    margin-top: 8px;
-    box-shadow: 0 4px 12px rgba(59, 90, 254, 0.2);
 }
 
 .submit-btn:hover {
-    background: linear-gradient(135deg, #2E47E6 0%, #1e3a8a 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(59, 90, 254, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
 }
 
 .submit-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(59, 90, 254, 0.3);
 }
 
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .container {
+        padding: 24px;
+    }
+    
+    .modal-header {
+        padding: 20px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.3rem;
+    }
+}
+
+/* Focus styles for accessibility */
+.modal-content:focus {
+    outline: none;
+}
+
+.close-btn:focus,
+.submit-btn:focus,
+.input-wrapper input:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
     .main-container {
         position: fixed;
         top: 30px;
@@ -3430,317 +3636,6 @@ input::placeholder {
     .main-content3 { background: white; }
     .main-content4 { background: white; }
     .main-content5 { background: white; }
-
-    /* ========== DASHBOARD STYLES ========== */
-.dashboard-container {
-    padding: 20px;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
-}
-
-/* Stats Grid */
-.dashboard-container .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.dashboard-container .stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e1e5e9;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dashboard-container .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-}
-
-.dashboard-container .stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: white;
-}
-
-.dashboard-container .stat-card:nth-child(2) .stat-icon {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.dashboard-container .stat-card:nth-child(3) .stat-icon {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.dashboard-container .stat-card:nth-child(4) .stat-icon {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.dashboard-container .stat-info h3 {
-    margin: 0 0 5px 0;
-    font-size: 14px;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.dashboard-container .stat-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0 0 5px 0;
-}
-
-.dashboard-container .stat-change {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-}
-
-.dashboard-container .stat-change.positive {
-    background: #d4edda;
-    color: #155724;
-}
-
-/* Charts Grid */
-.dashboard-container .charts-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.dashboard-container .chart-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e1e5e9;
-}
-
-.dashboard-container .chart-card h3 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.dashboard-container .chart-placeholder {
-    height: 200px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6c757d;
-    font-size: 16px;
-    border: 2px dashed #dee2e6;
-}
-
-/* Activity Card */
-.dashboard-container .activity-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e1e5e9;
-    margin-bottom: 30px;
-}
-
-.dashboard-container .activity-card h3 {
-    margin: 0 0 20px 0;
-    font-size: 16px;
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.dashboard-container .activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.dashboard-container .activity-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px 0;
-    border-bottom: 1px solid #f1f3f4;
-}
-
-.dashboard-container .activity-item:last-child {
-    border-bottom: none;
-}
-
-.dashboard-container .activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-}
-
-.dashboard-container .activity-details {
-    flex: 1;
-}
-
-.dashboard-container .activity-details p {
-    margin: 0 0 4px 0;
-    font-size: 14px;
-    color: #2c3e50;
-    font-weight: 500;
-}
-
-.dashboard-container .activity-details small {
-    color: #6c757d;
-    font-size: 12px;
-}
-
-.dashboard-container .activity-amount {
-    font-weight: 600;
-    color: #28a745;
-}
-
-/* Quick Actions */
-.dashboard-container .quick-actions {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e1e5e9;
-}
-
-.dashboard-container .quick-actions h3 {
-    margin: 0 0 20px 0;
-    font-size: 16px;
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.dashboard-container .action-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
-
-.dashboard-container .action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 20px 15px;
-    background: #f8f9fa;
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    color: #6c757d;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-}
-
-.dashboard-container .action-btn:hover {
-    background: #e9ecef;
-    border-color: #667eea;
-    color: #667eea;
-    transform: translateY(-2px);
-}
-
-.dashboard-container .action-btn span {
-    font-size: 20px;
-}
-
-/* Animation for dashboard elements */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.dashboard-container .stat-card {
-    animation: fadeInUp 0.5s ease forwards;
-}
-
-.dashboard-container .stat-card:nth-child(1) { animation-delay: 0.1s; }
-.dashboard-container .stat-card:nth-child(2) { animation-delay: 0.2s; }
-.dashboard-container .stat-card:nth-child(3) { animation-delay: 0.3s; }
-.dashboard-container .stat-card:nth-child(4) { animation-delay: 0.4s; }
-
-.dashboard-container .chart-card {
-    animation: fadeInUp 0.5s ease 0.5s forwards;
-    opacity: 0;
-}
-
-.dashboard-container .activity-card {
-    animation: fadeInUp 0.5s ease 0.6s forwards;
-    opacity: 0;
-}
-
-.dashboard-container .quick-actions {
-    animation: fadeInUp 0.5s ease 0.7s forwards;
-    opacity: 0;
-}
-
-/* Responsive Design for Dashboard Only */
-@media (max-width: 1024px) {
-    .dashboard-container .charts-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-container .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    .dashboard-container {
-        padding: 15px;
-    }
-    
-    .dashboard-container .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-container .action-buttons {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .dashboard-container .action-buttons {
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-container .stat-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 10px;
-    }
-    
-    .dashboard-container .stat-info {
-        width: 100%;
-    }
-}
 
 /* ========== REPORT STYLES ========== */
 .analytics-dashboard {
@@ -3913,33 +3808,6 @@ input::placeholder {
 .analytics-dashboard .value4 { font-size: 2rem; font-weight: 700; margin: 0.25rem 0; }
 .analytics-dashboard .desc4 { font-size: 0.875rem; opacity: 0.85; }
 
-.analytics-dashboard .card5 {
-    grid-column: 3;
-    grid-row: 1 / span 3;
-    align-self: end;
-    margin-bottom: 470px;
-    border-radius: 1.25rem;
-    padding: 1.3rem;
-    height: 400px;
-    background: white;
-    margin-left: -6rem;
-    margin-right: -1rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.analytics-dashboard .card5:hover { transform: translateY(-4px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
-.analytics-dashboard .card-header5 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.analytics-dashboard .card-header5 h2 { font-size: 1rem; font-weight: 600; }
-.analytics-dashboard .muted5 { color: black; font-size: 0.8rem; font-weight: 500; }
-.analytics-dashboard .stat-body { display: flex; flex-direction: column; gap: 0.75rem; }
-.analytics-dashboard .stat-body .value5 { font-size: 1.8rem; font-weight: 700; color: black; }
-.analytics-dashboard .stat-body ul { list-style: none; padding: 0; margin-top: 0.5rem; }
-.analytics-dashboard .stat-body li { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.9rem; color: #374151; }
-.analytics-dashboard .stat-body li span.positive6 { color: #16a34a; }
-.analytics-dashboard .stat-body li span.positive7 { color: #16a34a; }
-.analytics-dashboard .stat-body li span.negative5 { color: #dc2626; }
-
 .analytics-dashboard .card6 { 
     grid-column: 2; 
     grid-row: 3; 
@@ -3966,25 +3834,6 @@ input::placeholder {
     color: black; border-radius: 12px; font-size: 0.9rem;
 }
 
-.analytics-dashboard .card7 { 
-    gap: 10%;
-    margin-right: -10px;
-    grid-column: 3; 
-    grid-row: 3; 
-    border-radius: 1.25rem; 
-    padding: 1.5rem; 
-    margin-left: -90px; /* Binago mula sa margin-right: 20px; */
-    background: #fff; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.06); 
-    transition: transform 0.2s ease, box-shadow 0.2s ease; 
-}
-.analytics-dashboard .card7:hover { transform: translateY(-4px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
-.analytics-dashboard .card-header7 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.analytics-dashboard .card-header7 h2 { font-size: 1rem; font-weight: 600; }
-.analytics-dashboard .muted7 { color: black; font-size: 0.8rem; font-weight: 500; }
-.analytics-dashboard .growth-list7 { list-style: none; padding: 0; margin-top: 1rem; }
-.analytics-dashboard .growth-list7 li { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; color: #374151; }
-.analytics-dashboard .growth-list7 li:last-child { border-bottom: none; }
 
     /* ========== PRODUCTS STYLES ========== */
     .main-category-tabs {
@@ -5166,10 +5015,8 @@ input::placeholder {
         .right-sidebar {
             width: 280px;
         }
+
         
-        .metrics-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
     }
 
     @media (max-width: 768px) {
@@ -5183,10 +5030,6 @@ input::placeholder {
         
         .main-container {
             right: 15px;
-        }
-        
-        .metrics-grid {
-            grid-template-columns: 1fr;
         }
         
         .dashboard-grid {
@@ -5352,17 +5195,7 @@ input::placeholder {
     color: #166534;
 }
 
-.transaction-status.pending {
-    background: #fef9c3;
-    color: #854d0e;
-}
 
-.transaction-status.processing {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-/* SETTINGS STYLES */
 /* ========== SETTINGS MANAGEMENT STYLES ========== */
 .settings-management {
     padding: 2rem;
@@ -5691,15 +5524,6 @@ input::placeholder {
     }
 }
 
-/* Ensure these styles don't conflict with existing modal styles */
-.settings-management .modal-overlay {
-    /* Specific to settings modals */
-}
-
-.settings-management .modal-content {
-    /* Specific to settings modals */
-}
-
 /* FEEDBACK STYLES */
 .feedback-management {
     padding: 20px;
@@ -5946,15 +5770,7 @@ input::placeholder {
         gap: 15px;
         align-items: flex-start;
     }
-    
-    .search-container {
-        width: 100%;
-    }
-    
-    .header-actions {
-        flex-direction: column;
-        width: 100%;
-    }
+
     
     .btn-primary {
         width: 100%;
