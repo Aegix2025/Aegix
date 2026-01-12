@@ -1,12 +1,25 @@
-export enum UserRole { ADMIN = 'ADMIN', CASHIER = 'CASHIER' }
+export enum UserRole { 
+  ADMIN = 'ADMIN', 
+  CASHIER = 'CASHIER',
+  MANAGER = 'MANAGER',
+  STAFF = 'STAFF'
+}
 
 export interface User {
   id: string;
   username: string;
   role: UserRole;
   name: string;
-  email?: string; // Add email since it's used in your form
-  status?: 'active' | 'inactive' | 'on-leave'; // Add status property
+  email?: string;
+  password?: string;
+  status: 'active' | 'inactive' | 'on-leave';
+  createdAt: string;
+  updatedAt?: string;
+  lastLogin?: string;
+  cashierId?: string;
+  terminalId?: string;
+  isLoggedIn?: boolean;
+  sessionId?: string;
 }
 
 export interface SalesDataPoint {
@@ -31,19 +44,20 @@ export interface CartItem extends Product {
 export interface Transaction {
   id: string;
   cashierId: string;
+  cashierName?: string;
   items: CartItem[];
   total: number;
   subtotal: number;
   tax: number;
   timestamp: number;
-  paymentMethod: 'cash' | 'card' | string;
+  paymentMethod: 'cash' | 'card' | 'gcash';
   date: string;
   time: string;
   change?: number;
-  status?: 'pending' | 'completed' | 'failed' | 'refunded'; // Add status property
+  status?: 'pending' | 'completed' | 'failed' | 'refunded';
+  discount?: number;
+  discountType?: 'none' | 'pwd' | 'senior';
 }
-
-// --- Hierarchical Types ---
 
 export interface SubItem {
   id: number;
@@ -60,13 +74,22 @@ export interface ProductGroup {
 }
 
 export interface GenderCategory {
-  name: string; // e.g., "Men", "Women"
+  name: string;
   products: ProductGroup[];
-  children?: GenderCategory[]; // Recursive for nested groups like Kids -> Boys
+  children?: GenderCategory[];
 }
 
 export interface MainCategory {
   id: number;
-  name: string; // e.g., "Clothing"
+  name: string;
   genders: GenderCategory[];
+}
+
+export interface CashierSession {
+  sessionId: string;
+  cashierId: string;
+  terminalId: string;
+  startTime: string;
+  lastActivity: string;
+  isActive: boolean;
 }

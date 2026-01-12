@@ -17,6 +17,10 @@
   // Local state
   let activeSection: string = 'dashboard';
   let selectedPeriod: 'week' | 'month' = 'week';
+  let showCashierSelector = false;
+  let selectedCashier: User | null = null;
+  let cashierPin = '';
+  let cashierPinError = '';
 
   const categoryData = [
     { name: 'Clothing', value: 400 },
@@ -113,6 +117,26 @@
 
   function formatCurrency(amount: number): string {
     return `₱${amount.toLocaleString()}`;
+  }
+
+  function handleCashierPinSubmit() {
+    const correctPIN = '1234';
+    const backupPIN = '0000';
+
+    if (cashierPin === correctPIN || cashierPin === backupPIN) {
+      // PIN is correct, switch to cashier view
+      showCashierSelector = false;
+      selectedCashier = null;
+      cashierPin = '';
+      cashierPinError = '';
+      onSwitchToCashier();
+    } else {
+      cashierPinError = 'Incorrect PIN. Please try again.';
+      cashierPin = '';
+      setTimeout(() => {
+        cashierPinError = '';
+      }, 2000);
+    }
   }
 
   // Helper functions for chart calculations (kept for possible external use)
@@ -373,14 +397,14 @@
       <div class="menu-section">Menu</div>
       
       <button 
-        on:click={() => setSection('dashboard')}
+        onclick={() => setSection('dashboard')}
         class="menu-button {activeSection === 'dashboard' ? 'active' : ''}"
       >
         <LayoutDashboard size={20} /> Dashboard
       </button>
       
       <button 
-        on:click={() => setSection('report')}
+        onclick={() => setSection('report')}
         class="menu-button {activeSection === 'report' ? 'active' : ''}"
       >
         <FileText size={20} /> Report
@@ -388,7 +412,7 @@
 
       <div class="menu-section">Financial</div>
       <button 
-        on:click={() => setSection('transactions')}
+        onclick={() => setSection('transactions')}
         class="menu-button {activeSection === 'transactions' ? 'active' : ''}"
       >
         <Receipt size={20} /> Transactions
@@ -396,7 +420,7 @@
 
       <div class="menu-section">Tools</div>
       <button 
-        on:click={() => setSection('staff')}
+        onclick={() => setSection('staff')}
         class="menu-button {activeSection === 'staff' ? 'active' : ''}"
       >
         <Settings size={20} /> Staff
@@ -404,7 +428,7 @@
       
       <!-- ADDED: Products Menu Button -->
       <button 
-        on:click={() => setSection('products')}
+        onclick={() => setSection('products')}
         class="menu-button {activeSection === 'products' ? 'active' : ''}"
       >
         <Package size={20} /> Products
@@ -413,19 +437,98 @@
 
     <div class="sidebar-footer">
       <button 
-        on:click={onSwitchToCashier}
+        onclick={() => showCashierSelector = true}
         class="cashier-button"
       >
         <Store size={20} /> To Cashier
       </button>
       <button 
-        on:click={onLogout}
+        onclick={onLogout}
         class="logout-button"
       >
         <LogOut size={20} /> Sign Out
       </button>
     </div>
   </div>
+
+  <!-- Cashier Selector Modal -->
+  {#if showCashierSelector}
+    <div class="cashier-modal-overlay">
+      <div class="cashier-selector-modal">
+        {#if !selectedCashier}
+          <!-- Step 1: Select Cashier -->
+          <div class="cashier-selector-header">
+            <h2>Select Cashier</h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Choose a cashier to login</p>
+          </div>
+          <div class="cashier-selector-content">
+            <div class="cashier-list">
+              {#each users.filter(u => u.role === 'CASHIER') as cashier (cashier.id)}
+                <div 
+                  class="cashier-item"
+                  onclick={() => selectedCashier = cashier}
+                >
+                  <div class="cashier-item-name">{cashier.name}</div>
+                  <div class="cashier-item-info">{cashier.email}</div>
+                </div>
+              {/each}
+            </div>
+          </div>
+          <div class="cashier-modal-actions">
+            <button class="btn-cancel" onclick={() => showCashierSelector = false}>
+              Cancel
+            </button>
+          </div>
+        {:else}
+          <!-- Step 2: Enter PIN -->
+          <div class="cashier-selector-header">
+            <h2>Verify PIN</h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Login as {selectedCashier.name}</p>
+          </div>
+          <div class="cashier-selector-content" style="padding-bottom: 0;">
+            <div class="cashier-pin-section">
+              <div class="pin-input-group">
+                <label>Enter 4-digit PIN</label>
+                <input 
+                  type="password" 
+                  maxlength="4"
+                  bind:value={cashierPin}
+                  placeholder="••••"
+                  onkeyup={(e) => {
+                    if (e.key === 'Enter' && cashierPin.length === 4) {
+                      handleCashierPinSubmit();
+                    }
+                  }}
+                />
+                {#if cashierPinError}
+                  <div class="pin-error">{cashierPinError}</div>
+                {/if}
+              </div>
+              <p style="font-size: 12px; color: #64748b; margin-top: 12px;">
+                Default PIN: <strong>1234</strong> or <strong>0000</strong>
+              </p>
+            </div>
+          </div>
+          <div class="cashier-modal-actions">
+            <button class="btn-cancel" onclick={() => {
+              selectedCashier = null;
+              cashierPin = '';
+              cashierPinError = '';
+            }}>
+              Back
+            </button>
+            <button 
+              class="btn-confirm" 
+              disabled={cashierPin.length !== 4}
+              onclick={handleCashierPinSubmit}
+            >
+              Confirm
+            </button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 
   <!-- Main Content -->
   <main class="main-content">
@@ -818,7 +921,7 @@
             <div class="animate-fadeIn staff-container">
               <div class="staff-header">
                 <h2>Staff Management</h2>
-                <button class="add-staff-button" on:click={() => openAddStaffModal()}>+ Add New Staff</button>
+                <button class="add-staff-button" onclick={() => openAddStaffModal()}>+ Add New Staff</button>
               </div>
 
               <div class="staff-table-card">
@@ -848,8 +951,8 @@
                         </td>
                         <td>
                           <div class="staff-actions">
-                            <button class="edit-button" on:click={() => openEditStaffModal(user)}>Edit</button>
-                            <button class="delete-button" on:click={() => handleDeleteStaff(user.id)}>Delete</button>
+                            <button class="edit-button" onclick={() => openEditStaffModal(user)}>Edit</button>
+                            <button class="delete-button" onclick={() => handleDeleteStaff(user.id)}>Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -861,15 +964,15 @@
 
             <!-- Add Staff Modal -->
             {#if showAddStaffModal}
-              <div class="modal-overlay" on:click|self={() => closeStaffModal()}>
+              <div class="modal-overlay" role="dialog" onclick={(e) => { if (e.target === e.currentTarget) closeStaffModal(); }}>
                 <div class="staff-modal">
                   <div class="modal-header">
                     <h2>{editingStaff ? 'Edit Staff' : 'Add New Staff'}</h2>
-                    <button class="close-modal-button" on:click={closeStaffModal}>×</button>
+                    <button class="close-modal-button" onclick={closeStaffModal}>×</button>
                   </div>
                   
                   <div class="modal-content">
-                    <form on:submit|preventDefault={handleStaffSubmit}>
+                    <form onsubmit={(e) => { e.preventDefault(); handleStaffSubmit(); }}>
                       <div class="form-group">
                         <label for="staff-name">Full Name</label>
                         <input 
@@ -922,7 +1025,7 @@
                       </div>
                       
                       <div class="modal-actions">
-                        <button type="button" class="cancel-button" on:click={closeStaffModal}>Cancel</button>
+                        <button type="button" class="cancel-button" onclick={closeStaffModal}>Cancel</button>
                         <button type="submit" class="confirm-button">
                           {editingStaff ? 'Update Staff' : 'Add Staff'}
                         </button>
@@ -935,11 +1038,11 @@
 
             <!-- Delete Confirmation Modal -->
             {#if showDeleteConfirmModal}
-              <div class="modal-overlay" on:click|self={() => showDeleteConfirmModal = false}>
+              <div class="modal-overlay" role="dialog" onclick={(e) => { if (e.target === e.currentTarget) showDeleteConfirmModal = false; }}>
                 <div class="confirm-modal">
                   <div class="confirm-header">
                     <h3>Delete Staff</h3>
-                    <button class="close-modal-button" on:click={() => showDeleteConfirmModal = false}>×</button>
+                    <button class="close-modal-button" onclick={() => showDeleteConfirmModal = false}>×</button>
                   </div>
                   
                   <div class="confirm-content">
@@ -947,8 +1050,8 @@
                     <p class="warning-text">This action cannot be undone.</p>
                     
                     <div class="confirm-actions">
-                      <button class="cancel-button" on:click={() => showDeleteConfirmModal = false}>Cancel</button>
-                      <button class="delete-confirm-button" on:click={confirmDeleteStaff}>Delete Staff</button>
+                      <button class="cancel-button" onclick={() => showDeleteConfirmModal = false}>Cancel</button>
+                      <button class="delete-confirm-button" onclick={confirmDeleteStaff}>Delete Staff</button>
                     </div>
                   </div>
                 </div>
@@ -961,7 +1064,7 @@
             <div class="animate-fadeIn products-container">
               <div class="products-header">
                 <h2>Product Management</h2>
-                <button class="add-product-button" on:click={() => openAddProductModal()}>+ Add New Product</button>
+                <button class="add-product-button" onclick={() => openAddProductModal()}>+ Add New Product</button>
               </div>
 
               <div class="products-table-card">
@@ -1008,8 +1111,8 @@
                         </td>
                         <td>
                           <div class="product-actions">
-                            <button class="edit-button" on:click={() => openEditProductModal(product)}>Edit</button>
-                            <button class="delete-button" on:click={() => handleDeleteProduct(product.id)}>Delete</button>
+                            <button class="edit-button" onclick={() => openEditProductModal(product)}>Edit</button>
+                            <button class="delete-button" onclick={() => handleDeleteProduct(product.id)}>Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -1021,15 +1124,15 @@
 
             <!-- Add Product Modal -->
             {#if showAddProductModal}
-              <div class="modal-overlay" on:click|self={() => closeProductModal()}>
+              <div class="modal-overlay" role="dialog" onclick={(e) => { if (e.target === e.currentTarget) closeProductModal(); }}>
                 <div class="product-modal">
                   <div class="modal-header">
                     <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-                    <button class="close-modal-button" on:click={closeProductModal}>×</button>
+                    <button class="close-modal-button" onclick={closeProductModal}>×</button>
                   </div>
                   
                   <div class="modal-content">
-                    <form on:submit|preventDefault={handleProductSubmit}>
+                    <form onsubmit={(e) => { e.preventDefault(); handleProductSubmit(); }}>
                       <div class="form-group">
                         <label for="product-name">Product Name</label>
                         <input 
@@ -1099,7 +1202,7 @@
                       </div>
                       
                       <div class="modal-actions">
-                        <button type="button" class="cancel-button" on:click={closeProductModal}>Cancel</button>
+                        <button type="button" class="cancel-button" onclick={closeProductModal}>Cancel</button>
                         <button type="submit" class="confirm-button">
                           {editingProduct ? 'Update Product' : 'Add Product'}
                         </button>
@@ -1112,11 +1215,11 @@
 
             <!-- Delete Product Confirmation Modal -->
             {#if showDeleteProductConfirmModal}
-              <div class="modal-overlay" on:click|self={() => showDeleteProductConfirmModal = false}>
+              <div class="modal-overlay" role="dialog" onclick={(e) => { if (e.target === e.currentTarget) showDeleteProductConfirmModal = false; }}>
                 <div class="confirm-modal">
                   <div class="confirm-header">
                     <h3>Delete Product</h3>
-                    <button class="close-modal-button" on:click={() => showDeleteProductConfirmModal = false}>×</button>
+                    <button class="close-modal-button" onclick={() => showDeleteProductConfirmModal = false}>×</button>
                   </div>
                   
                   <div class="confirm-content">
@@ -1124,8 +1227,8 @@
                     <p class="warning-text">This action cannot be undone.</p>
                     
                     <div class="confirm-actions">
-                      <button class="cancel-button" on:click={() => showDeleteProductConfirmModal = false}>Cancel</button>
-                      <button class="delete-confirm-button" on:click={confirmDeleteProduct}>Delete Product</button>
+                      <button class="cancel-button" onclick={() => showDeleteProductConfirmModal = false}>Cancel</button>
+                      <button class="delete-confirm-button" onclick={confirmDeleteProduct}>Delete Product</button>
                     </div>
                   </div>
                 </div>
@@ -2441,5 +2544,167 @@
   color: rgb(245 158 11);
   font-weight: 500;
   font-size: 0.875rem;
+}
+
+/* Cashier Selector Modal */
+.cashier-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.cashier-selector-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+}
+
+.cashier-selector-header {
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.cashier-selector-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.cashier-selector-content {
+  padding: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.cashier-list {
+  display: grid;
+  gap: 12px;
+}
+
+.cashier-item {
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cashier-item:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+
+.cashier-item.selected {
+  border-color: #667eea;
+  background: #667eea;
+  color: white;
+}
+
+.cashier-item-name {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.cashier-item-info {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.cashier-pin-section {
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.pin-input-group {
+  margin-bottom: 16px;
+}
+
+.pin-input-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.pin-input-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-align: center;
+  font-weight: bold;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.pin-input-group input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.pin-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.cashier-modal-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: white;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cashier-modal-actions button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cashier-modal-actions .btn-cancel {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.cashier-modal-actions .btn-cancel:hover {
+  background: #cbd5e1;
+}
+
+.cashier-modal-actions .btn-confirm {
+  background: #667eea;
+  color: white;
+}
+
+.cashier-modal-actions .btn-confirm:hover:not(:disabled) {
+  background: #764ba2;
+}
+
+.cashier-modal-actions .btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
